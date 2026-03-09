@@ -1,0 +1,582 @@
+{
+  "project": {
+    "title": "AUTOFICTION // PROJECT ARCHIVE",
+    "subtitle": "浓缩文档仓库 / Dense archive repository",
+    "notice": "Use this as a live folder index. Replace placeholder media paths with your own files under /public/assets."
+  },
+  "tabs": [
+    {
+      "id": "physicalResearch",
+      "label": "物理研究 Photos+Video",
+      "description": "Raw documentation from in-person research runs."
+    },
+    {
+      "id": "floorPlan",
+      "label": "平面图 Floor Plan",
+      "description": "2D references + compact GLB preview support."
+    },
+    {
+      "id": "supportSites",
+      "label": "外链框架 Iframes",
+      "description": "Embedded supporting websites and research tools."
+    },
+    {
+      "id": "liveShow",
+      "label": "演出文档 Live Show",
+      "description": "Run-of-show notes, cues, and timing logs."
+    },
+    {
+      "id": "setDocs",
+      "label": "场景文档 Set",
+      "description": "Build records, material specs, and setup checklists."
+    },
+    {
+      "id": "script",
+      "label": "脚本 Script",
+      "description": "Scene script, revisions, and annotation fragments."
+    },
+    {
+      "id": "creativeDirection",
+      "label": "创意方向 Creative Direction",
+      "description": "Visual language, thematic tone, and narrative strategy references."
+    },
+    {
+      "id": "digitalResearch",
+      "label": "数字研究 Digital Research",
+      "description": "Online source analysis, platform studies, and digital references."
+    }
+  ],
+  "imageAssets": [
+    {
+      "id": "prf-001",
+      "sectionId": "physicalResearch",
+      "title": "Flushing Capture 6629",
+      "src": "/assets/physical-research/flushing/IMG_6629.JPG",
+      "directory": "public/assets/physical-research/flushing/IMG_6629.JPG",
+      "description": "Field capture from Flushing physical research documentation.",
+      "author": "Elizabeth Kezia Widjaja"
+    },
+    {
+      "id": "prf-002",
+      "sectionId": "physicalResearch",
+      "title": "Flushing Capture 6653",
+      "src": "/assets/physical-research/flushing/IMG_6653.JPG",
+      "directory": "public/assets/physical-research/flushing/IMG_6653.JPG",
+      "description": "Field capture from Flushing physical research documentation.",
+      "author": "Elizabeth Kezia Widjaja"
+    },
+    {
+      "id": "prf-003",
+      "sectionId": "physicalResearch",
+      "title": "Flushing Capture 6672",
+      "src": "/assets/physical-research/flushing/IMG_6672.JPG",
+      "directory": "public/assets/physical-research/flushing/IMG_6672.JPG",
+      "description": "Field capture from Flushing physical research documentation.",
+      "author": "Elizabeth Kezia Widjaja"
+    },
+    {
+      "id": "prf-004",
+      "sectionId": "physicalResearch",
+      "title": "Flushing Capture 6679",
+      "src": "/assets/physical-research/flushing/IMG_6679.JPG",
+      "directory": "public/assets/physical-research/flushing/IMG_6679.JPG",
+      "description": "Field capture from Flushing physical research documentation.",
+      "author": "Elizabeth Kezia Widjaja"
+    },
+    {
+      "id": "prf-005",
+      "sectionId": "physicalResearch",
+      "title": "Flushing Capture 6681",
+      "src": "/assets/physical-research/flushing/IMG_6681.JPG",
+      "directory": "public/assets/physical-research/flushing/IMG_6681.JPG",
+      "description": "Field capture from Flushing physical research documentation.",
+      "author": "Elizabeth Kezia Widjaja"
+    },
+    {
+      "id": "prf-006",
+      "sectionId": "physicalResearch",
+      "title": "Flushing Capture 6683",
+      "src": "/assets/physical-research/flushing/IMG_6683.JPG",
+      "directory": "public/assets/physical-research/flushing/IMG_6683.JPG",
+      "description": "Field capture from Flushing physical research documentation.",
+      "author": "Elizabeth Kezia Widjaja"
+    },
+    {
+      "id": "prf-007",
+      "sectionId": "physicalResearch",
+      "title": "Flushing Capture 6684",
+      "src": "/assets/physical-research/flushing/IMG_6684.JPG",
+      "directory": "public/assets/physical-research/flushing/IMG_6684.JPG",
+      "description": "Field capture from Flushing physical research documentation.",
+      "author": "Elizabeth Kezia Widjaja"
+    },
+    {
+      "id": "prf-008",
+      "sectionId": "physicalResearch",
+      "title": "Flushing Capture 6687",
+      "src": "/assets/physical-research/flushing/IMG_6687.JPG",
+      "directory": "public/assets/physical-research/flushing/IMG_6687.JPG",
+      "description": "Field capture from Flushing physical research documentation.",
+      "author": "Elizabeth Kezia Widjaja"
+    },
+    {
+      "id": "prf-009",
+      "sectionId": "physicalResearch",
+      "title": "Flushing Capture 6689",
+      "src": "/assets/physical-research/flushing/IMG_6689.JPG",
+      "directory": "public/assets/physical-research/flushing/IMG_6689.JPG",
+      "description": "Field capture from Flushing physical research documentation.",
+      "author": "Elizabeth Kezia Widjaja"
+    },
+    {
+      "id": "prf-010",
+      "sectionId": "physicalResearch",
+      "title": "Flushing Capture 6690",
+      "src": "/assets/physical-research/flushing/IMG_6690.JPG",
+      "directory": "public/assets/physical-research/flushing/IMG_6690.JPG",
+      "description": "Field capture from Flushing physical research documentation.",
+      "author": "Elizabeth Kezia Widjaja"
+    },
+    {
+      "id": "prf-011",
+      "sectionId": "physicalResearch",
+      "title": "Flushing Capture 6691",
+      "src": "/assets/physical-research/flushing/IMG_6691.JPG",
+      "directory": "public/assets/physical-research/flushing/IMG_6691.JPG",
+      "description": "Field capture from Flushing physical research documentation.",
+      "author": "Elizabeth Kezia Widjaja"
+    },
+    {
+      "id": "prf-012",
+      "sectionId": "physicalResearch",
+      "title": "Flushing Capture 6692",
+      "src": "/assets/physical-research/flushing/IMG_6692.JPG",
+      "directory": "public/assets/physical-research/flushing/IMG_6692.JPG",
+      "description": "Field capture from Flushing physical research documentation.",
+      "author": "Elizabeth Kezia Widjaja"
+    },
+    {
+      "id": "prf-013",
+      "sectionId": "physicalResearch",
+      "title": "Flushing Capture 6693",
+      "src": "/assets/physical-research/flushing/IMG_6693.JPG",
+      "directory": "public/assets/physical-research/flushing/IMG_6693.JPG",
+      "description": "Field capture from Flushing physical research documentation.",
+      "author": "Elizabeth Kezia Widjaja"
+    },
+    {
+      "id": "prf-014",
+      "sectionId": "physicalResearch",
+      "title": "Flushing Capture 6695",
+      "src": "/assets/physical-research/flushing/IMG_6695.JPG",
+      "directory": "public/assets/physical-research/flushing/IMG_6695.JPG",
+      "description": "Field capture from Flushing physical research documentation.",
+      "author": "Elizabeth Kezia Widjaja"
+    },
+    {
+      "id": "prf-015",
+      "sectionId": "physicalResearch",
+      "title": "Flushing Capture 6697",
+      "src": "/assets/physical-research/flushing/IMG_6697.JPG",
+      "directory": "public/assets/physical-research/flushing/IMG_6697.JPG",
+      "description": "Field capture from Flushing physical research documentation.",
+      "author": "Elizabeth Kezia Widjaja"
+    },
+    {
+      "id": "prf-016",
+      "sectionId": "physicalResearch",
+      "title": "Flushing Capture 6699",
+      "src": "/assets/physical-research/flushing/IMG_6699.JPG",
+      "directory": "public/assets/physical-research/flushing/IMG_6699.JPG",
+      "description": "Field capture from Flushing physical research documentation.",
+      "author": "Elizabeth Kezia Widjaja"
+    },
+    {
+      "id": "prf-017",
+      "sectionId": "physicalResearch",
+      "title": "WeChat Capture 103",
+      "src": "/assets/physical-research/flushing/WechatIMG103.jpg",
+      "directory": "public/assets/physical-research/flushing/WechatIMG103.jpg",
+      "description": "WeChat-shared field image from Flushing research documentation stream.",
+      "author": "Leo Zheng"
+    },
+    {
+      "id": "prf-018",
+      "sectionId": "physicalResearch",
+      "title": "WeChat Capture 104",
+      "src": "/assets/physical-research/flushing/WechatIMG104.jpg",
+      "directory": "public/assets/physical-research/flushing/WechatIMG104.jpg",
+      "description": "WeChat-shared field image from Flushing research documentation stream.",
+      "author": "Leo Zheng"
+    },
+    {
+      "id": "prf-019",
+      "sectionId": "physicalResearch",
+      "title": "WeChat Capture 105",
+      "src": "/assets/physical-research/flushing/WechatIMG105.jpg",
+      "directory": "public/assets/physical-research/flushing/WechatIMG105.jpg",
+      "description": "WeChat-shared field image from Flushing research documentation stream.",
+      "author": "Leo Zheng"
+    },
+    {
+      "id": "prf-020",
+      "sectionId": "physicalResearch",
+      "title": "WeChat Capture 106",
+      "src": "/assets/physical-research/flushing/WechatIMG106.jpg",
+      "directory": "public/assets/physical-research/flushing/WechatIMG106.jpg",
+      "description": "WeChat-shared field image from Flushing research documentation stream.",
+      "author": "Leo Zheng"
+    },
+    {
+      "id": "prf-021",
+      "sectionId": "physicalResearch",
+      "title": "WeChat Capture 107",
+      "src": "/assets/physical-research/flushing/WechatIMG107.jpg",
+      "directory": "public/assets/physical-research/flushing/WechatIMG107.jpg",
+      "description": "WeChat-shared field image from Flushing research documentation stream.",
+      "author": "Leo Zheng"
+    },
+    {
+      "id": "prf-022",
+      "sectionId": "physicalResearch",
+      "title": "WeChat Capture 108",
+      "src": "/assets/physical-research/flushing/WechatIMG108.jpg",
+      "directory": "public/assets/physical-research/flushing/WechatIMG108.jpg",
+      "description": "WeChat-shared field image from Flushing research documentation stream.",
+      "author": "Leo Zheng"
+    },
+    {
+      "id": "prf-023",
+      "sectionId": "physicalResearch",
+      "title": "WeChat Capture 109",
+      "src": "/assets/physical-research/flushing/WechatIMG109.jpg",
+      "directory": "public/assets/physical-research/flushing/WechatIMG109.jpg",
+      "description": "WeChat-shared field image from Flushing research documentation stream.",
+      "author": "Leo Zheng"
+    },
+    {
+      "id": "prf-024",
+      "sectionId": "physicalResearch",
+      "title": "WeChat Capture 110",
+      "src": "/assets/physical-research/flushing/WechatIMG110.jpg",
+      "directory": "public/assets/physical-research/flushing/WechatIMG110.jpg",
+      "description": "WeChat-shared field image from Flushing research documentation stream.",
+      "author": "Leo Zheng"
+    },
+    {
+      "id": "prf-025",
+      "sectionId": "physicalResearch",
+      "title": "WeChat Capture 111",
+      "src": "/assets/physical-research/flushing/WechatIMG111.jpg",
+      "directory": "public/assets/physical-research/flushing/WechatIMG111.jpg",
+      "description": "WeChat-shared field image from Flushing research documentation stream.",
+      "author": "Leo Zheng"
+    },
+    {
+      "id": "prf-026",
+      "sectionId": "physicalResearch",
+      "title": "WeChat Capture 112",
+      "src": "/assets/physical-research/flushing/WechatIMG112.jpg",
+      "directory": "public/assets/physical-research/flushing/WechatIMG112.jpg",
+      "description": "WeChat-shared field image from Flushing research documentation stream.",
+      "author": "Leo Zheng"
+    },
+    {
+      "id": "prf-027",
+      "sectionId": "physicalResearch",
+      "title": "WeChat Capture 113",
+      "src": "/assets/physical-research/flushing/WechatIMG113.jpg",
+      "directory": "public/assets/physical-research/flushing/WechatIMG113.jpg",
+      "description": "WeChat-shared field image from Flushing research documentation stream.",
+      "author": "Leo Zheng"
+    },
+    {
+      "id": "prf-028",
+      "sectionId": "physicalResearch",
+      "title": "WeChat Capture 114",
+      "src": "/assets/physical-research/flushing/WechatIMG114.jpg",
+      "directory": "public/assets/physical-research/flushing/WechatIMG114.jpg",
+      "description": "WeChat-shared field image from Flushing research documentation stream.",
+      "author": "Leo Zheng"
+    },
+    {
+      "id": "prf-029",
+      "sectionId": "physicalResearch",
+      "title": "WeChat Capture 115",
+      "src": "/assets/physical-research/flushing/WechatIMG115.jpg",
+      "directory": "public/assets/physical-research/flushing/WechatIMG115.jpg",
+      "description": "WeChat-shared field image from Flushing research documentation stream.",
+      "author": "Leo Zheng"
+    },
+    {
+      "id": "prf-030",
+      "sectionId": "physicalResearch",
+      "title": "WeChat Capture 116",
+      "src": "/assets/physical-research/flushing/WechatIMG116.jpg",
+      "directory": "public/assets/physical-research/flushing/WechatIMG116.jpg",
+      "description": "WeChat-shared field image from Flushing research documentation stream.",
+      "author": "Leo Zheng"
+    },
+    {
+      "id": "prf-031",
+      "sectionId": "physicalResearch",
+      "title": "WeChat Capture 117",
+      "src": "/assets/physical-research/flushing/WechatIMG117.jpg",
+      "directory": "public/assets/physical-research/flushing/WechatIMG117.jpg",
+      "description": "WeChat-shared field image from Flushing research documentation stream.",
+      "author": "Leo Zheng"
+    },
+    {
+      "id": "prf-032",
+      "sectionId": "physicalResearch",
+      "title": "WeChat Capture 118",
+      "src": "/assets/physical-research/flushing/WechatIMG118.jpg",
+      "directory": "public/assets/physical-research/flushing/WechatIMG118.jpg",
+      "description": "WeChat-shared field image from Flushing research documentation stream.",
+      "author": "Leo Zheng"
+    },
+    {
+      "id": "prf-033",
+      "sectionId": "physicalResearch",
+      "title": "WeChat Capture 119",
+      "src": "/assets/physical-research/flushing/WechatIMG119.jpg",
+      "directory": "public/assets/physical-research/flushing/WechatIMG119.jpg",
+      "description": "WeChat-shared field image from Flushing research documentation stream.",
+      "author": "Leo Zheng"
+    },
+    {
+      "id": "prf-034",
+      "sectionId": "physicalResearch",
+      "title": "WeChat Capture 120",
+      "src": "/assets/physical-research/flushing/WechatIMG120.jpg",
+      "directory": "public/assets/physical-research/flushing/WechatIMG120.jpg",
+      "description": "WeChat-shared field image from Flushing research documentation stream.",
+      "author": "Leo Zheng"
+    },
+    {
+      "id": "prf-035",
+      "sectionId": "physicalResearch",
+      "title": "WeChat Capture 121",
+      "src": "/assets/physical-research/flushing/WechatIMG121.jpg",
+      "directory": "public/assets/physical-research/flushing/WechatIMG121.jpg",
+      "description": "WeChat-shared field image from Flushing research documentation stream.",
+      "author": "Leo Zheng"
+    },
+    {
+      "id": "fp-001",
+      "sectionId": "floorPlan",
+      "title": "Top View Raster Export",
+      "src": "https://picsum.photos/id/1039/400/280",
+      "directory": "public/assets/floor-plan/floor-plan-top-raster-001.png",
+      "description": "Scaled top view print with performer movement blocks.",
+      "author": "Elizabeth Kezia Widjaja"
+    },
+    {
+      "id": "fp-002",
+      "sectionId": "floorPlan",
+      "title": "Seating Overlay v2",
+      "src": "https://picsum.photos/id/1050/400/280",
+      "directory": "public/assets/floor-plan/floor-plan-seating-overlay-v2.png",
+      "description": "Audience sightline zones and obstruction warning heatmap.",
+      "author": "Elizabeth Kezia Widjaja"
+    },
+    {
+      "id": "sd-001",
+      "sectionId": "setDocs",
+      "title": "Rigging Test Bench",
+      "src": "https://picsum.photos/id/1020/400/280",
+      "directory": "public/assets/set-docs/rigging/rigging-test-bench-001.jpg",
+      "description": "Prototype frame test using adjustable weight distribution.",
+      "author": "Elizabeth Kezia Widjaja"
+    },
+    {
+      "id": "sd-002",
+      "sectionId": "setDocs",
+      "title": "Material Sample Strip",
+      "src": "https://picsum.photos/id/1076/400/280",
+      "directory": "public/assets/set-docs/materials/material-strip-002.jpg",
+      "description": "Paint and textile sample matrix under warm stage lighting.",
+      "author": "Elizabeth Kezia Widjaja"
+    },
+    {
+      "id": "cd-001",
+      "sectionId": "creativeDirection",
+      "title": "Typography Compression Board",
+      "src": "/assets/creative-direction/ux/user-flow.png",
+      "directory": "public/assets/creative-direction/type-compression-board-001.jpg",
+      "description": "Plan of user flow in the physical exhibit",
+      "author": "Elizabeth Kezia Widjaja"
+    },
+    {
+      "id": "cd-002",
+      "sectionId": "creativeDirection",
+      "title": "Color Rhythm Strip",
+      "src": "https://picsum.photos/id/1025/400/280",
+      "directory": "public/assets/creative-direction/color-rhythm-strip-002.jpg",
+      "description": "Warm-cool contrast map for scene sequencing and attention control.",
+      "author": "Elizabeth Kezia Widjaja"
+    }
+  ],
+  "videoAssets": [
+    {
+      "id": "pv-001",
+      "sectionId": "physicalResearch",
+      "title": "Crowd Movement Clip A",
+      "src": "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4",
+      "directory": "public/assets/physical-research/video/crowd-movement-a.mp4",
+      "description": "Reference motion timing for walk-through scene transitions.",
+      "author": "Elizabeth Kezia Widjaja"
+    },
+    {
+      "id": "pv-002",
+      "sectionId": "physicalResearch",
+      "title": "Street Audio Visual Sync",
+      "src": "https://www.w3schools.com/html/mov_bbb.mp4",
+      "directory": "public/assets/physical-research/video/street-audio-sync-b.mp4",
+      "description": "Ambient pacing sample used in sound rehearsal alignment.",
+      "author": "Elizabeth Kezia Widjaja"
+    }
+  ],
+  "modelAssets": [
+    {
+      "id": "mdl-001",
+      "sectionId": "floorPlan",
+      "title": "Venue Floor Preview",
+      "src": "/assets/floor-plan/glb/AudioLab_FloorPlan.glb",
+      "poster": "https://picsum.photos/id/1015/600/420",
+      "directory": "public/assets/floor-plan/glb/AudioLab_FloorPlan.glb",
+      "description": "GLB-compatible slot. Replace src with your local floor-plan model path.",
+      "author": "Kurt & Kezia"
+    }
+  ],
+  "iframeAssets": [
+    {
+      "id": "if-001",
+      "sectionId": "supportSites",
+      "title": "Archive.org Embed",
+      "url": "https://archive.org/embed/opensource_movies",
+      "directory": "external://archive.org/embed/opensource_movies",
+      "description": "Public moving-image archive feed for mood/era references.",
+      "author": "Elizabeth Kezia Widjaja"
+    },
+    {
+      "id": "if-002",
+      "sectionId": "supportSites",
+      "title": "OpenStreetMap Frame",
+      "url": "https://www.openstreetmap.org/export/embed.html?bbox=116.3805%2C39.9008%2C116.4084%2C39.9147&layer=mapnik",
+      "directory": "external://openstreetmap.org/export/embed",
+      "description": "Map context used for route planning and logistics overlays.",
+      "author": "Elizabeth Kezia Widjaja"
+    },
+    {
+      "id": "if-003",
+      "sectionId": "supportSites",
+      "title": "Vimeo Staff Picks",
+      "url": "https://player.vimeo.com/video/76979871",
+      "directory": "external://player.vimeo.com/video/76979871",
+      "description": "Embedded visual rhythm references for scene texture studies.",
+      "author": "Elizabeth Kezia Widjaja"
+    },
+    {
+      "id": "if-004",
+      "sectionId": "digitalResearch",
+      "title": "Matchmaking Agency China - Research Clip",
+      "url": "https://www.youtube.com/embed/EWDoYQ27JCY?start=2458",
+      "directory": "external://youtube.com/watch?v=EWDoYQ27JCY&t=2458s",
+      "description": "Digital research source from YouTube, starting at the requested timestamp.",
+      "author": "Elizabeth Kezia Widjaja"
+    }
+  ],
+  "documents": [
+    {
+      "id": "ls-001",
+      "sectionId": "liveShow",
+      "title": "Run Sheet V5",
+      "directory": "docs/live-show/run-sheet-v5.md",
+      "description": "Minute-by-minute cue sheet with operator ownership tags.",
+      "excerpt": "19:30 Open house; 19:42 Cue L-03, audio bed enters at -12dB; 19:45 performer entry stage-left.",
+      "author": "Elizabeth Kezia Widjaja"
+    },
+    {
+      "id": "ls-002",
+      "sectionId": "liveShow",
+      "title": "Performer Cue Notes",
+      "directory": "docs/live-show/performer-cues-v2.md",
+      "description": "Quick prompt list for transitions, safety checks, and fallback beats.",
+      "excerpt": "If projection desync exceeds 2s, hold at beat marker C and repeat movement phrase 03.",
+      "author": "Elizabeth Kezia Widjaja"
+    },
+    {
+      "id": "set-001",
+      "sectionId": "setDocs",
+      "title": "Set Build Checklist",
+      "directory": "docs/set/build-checklist.md",
+      "description": "Load-in checklist covering rigging, power, and projection alignment.",
+      "excerpt": "Confirm truss torque markers, cable channels, and emergency clear paths before rehearsal.",
+      "author": "Elizabeth Kezia Widjaja"
+    },
+    {
+      "id": "set-002",
+      "sectionId": "setDocs",
+      "title": "Material BOM",
+      "directory": "docs/set/material-bom.csv",
+      "description": "Costed bill of materials grouped by module and revision batch.",
+      "excerpt": "Panels: 18; steel brackets: 74; matte diffusion film: 52m; reserve hardware: 12%.",
+      "author": "Elizabeth Kezia Widjaja"
+    },
+    {
+      "id": "scr-001",
+      "sectionId": "script",
+      "title": "Script Draft A12",
+      "directory": "docs/script/script-draft-a12.md",
+      "description": "Current narrative baseline with timing anchors and speech rhythm marks.",
+      "excerpt": "Scene 04: Performer crosses interior line, repeats phrase in split cadence with projected subtitle stack.",
+      "author": "Elizabeth Kezia Widjaja"
+    },
+    {
+      "id": "scr-002",
+      "sectionId": "script",
+      "title": "Script Diff Notes",
+      "directory": "docs/script/diff-notes-a11-a12.md",
+      "description": "Revision deltas for blocking language and timing compressions.",
+      "excerpt": "Removed long pause in Scene 02; merged dialogue fragments to preserve visual density.",
+      "author": "Elizabeth Kezia Widjaja"
+    },
+    {
+      "id": "cdoc-001",
+      "sectionId": "creativeDirection",
+      "title": "Creative Direction Manifesto v1",
+      "directory": "docs/creative-direction/manifesto-v1.md",
+      "description": "Core visual and narrative principles guiding layout, pacing, and material choices.",
+      "excerpt": "Prioritize compressed information fields, layered references, and intentional visual overload.",
+      "author": "Elizabeth Kezia Widjaja"
+    },
+    {
+      "id": "cdoc-002",
+      "sectionId": "creativeDirection",
+      "title": "Moodboard Index",
+      "directory": "docs/creative-direction/moodboard-index.md",
+      "description": "Cross-linked board references for fonts, textures, signage, and movement motifs.",
+      "excerpt": "Group references by scene utility: transition, conflict, release, and reflective cooldown.",
+      "author": "Elizabeth Kezia Widjaja"
+    },
+    {
+      "id": "dres-001",
+      "sectionId": "digitalResearch",
+      "title": "Reasons of Going to Matchmaking Agency",
+      "directory": "docs/digital-research/reasons-matchmaking-agency.md",
+      "description": "Interview notes summarizing motivations behind matchmaking agency use.",
+      "excerpt": "want to make parents stop bothering them about marriage; most time is spent on work not social life; \"can meet more people via agency, its more EFFICIENT\"; people wanna skip the struggles (and use their partner wealth to accommodate that); men is expected to ideally have car and mortgage free apart",
+      "author": "Elizabeth Kezia Widjaja"
+    },
+    {
+      "id": "dres-002",
+      "sectionId": "digitalResearch",
+      "title": "Male Client Highlighted Attributes",
+      "directory": "docs/digital-research/male-client-attributes.md",
+      "description": "Attributes that male client highlight on the interview.",
+      "excerpt": "salary; age; height; education degree",
+      "author": "Elizabeth Kezia Widjaja"
+    }
+  ]
+}
