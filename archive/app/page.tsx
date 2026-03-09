@@ -57,7 +57,7 @@ const AD_PALETTES = [
   "from-[#ffe0de] via-[#ffc3bd] to-[#ffad84]",
   "from-[#e6ffd9] via-[#d4f7bc] to-[#c3eca4]",
 ];
-const SHOW_FAKE_ADS = false;
+const SHOW_FAKE_ADS = true;
 
 function normalizeAssetPath(path: string): string {
   if (/^(https?:)?\/\//.test(path) || path.startsWith("data:")) {
@@ -111,6 +111,40 @@ function AdCard({ ad, small = false }: { ad: AdUnit; small?: boolean }) {
           <p className="line-clamp-2">{ad.subline}</p>
           <p className="mt-1 inline-block rounded border border-[#9e3f00] bg-[#ffea9c] px-1 py-0.5 text-[10px] font-semibold text-[#8f2e00]">
             {ad.cta}
+          </p>
+        </div>
+      </div>
+    </article>
+  );
+}
+
+function AdBanner({ ad }: { ad: AdUnit }) {
+  const ticker = `${ad.title} · ${ad.subline} · ${ad.cta} · ${ad.badge} · `;
+
+  return (
+    <article className="ad-card dense-item relative overflow-hidden border-[#d28231] px-2 py-2">
+      <div className={`absolute inset-0 bg-gradient-to-r opacity-80 ${ad.palette}`} />
+      <div className="ad-scanlines absolute inset-0 opacity-35" />
+      <div className="relative z-10 grid grid-cols-[92px_minmax(0,1fr)_92px] items-center gap-2 sm:grid-cols-[124px_minmax(0,1fr)_124px]">
+        <div
+          className="h-14 w-[92px] shrink-0 border border-[#c77d35] bg-cover bg-center sm:h-16 sm:w-[124px]"
+          style={{ backgroundImage: `url(${ad.gifUrl})` }}
+          aria-label={`${ad.title} gif banner`}
+        />
+        <div className="overflow-hidden border border-[#c77d35] bg-[#fff0bf]/90 px-2 py-2 text-[#6b2a00]">
+          <div className="ad-marquee-track text-[12px] font-bold sm:text-[13px]">
+            <span>{ticker.repeat(4)}</span>
+            <span>{ticker.repeat(4)}</span>
+          </div>
+        </div>
+        <div className="relative h-14 w-[92px] shrink-0 border border-[#c77d35] bg-cover bg-center sm:h-16 sm:w-[124px]">
+          <div
+            className="h-full w-full bg-cover bg-center"
+            style={{ backgroundImage: `url(${ad.gifUrl})` }}
+            aria-label={`${ad.title} gif banner`}
+          />
+          <p className="ad-blink absolute bottom-1 right-1 rounded bg-[#b41400] px-1 py-0.5 text-[9px] font-bold text-white">
+            {ad.badge}
           </p>
         </div>
       </div>
@@ -313,10 +347,6 @@ function SectionPanel({
   const models = archiveData.modelAssets.filter((item) => item.sectionId === sectionId);
   const iframes = archiveData.iframeAssets.filter((item) => item.sectionId === sectionId);
   const docs = archiveData.documents.filter((item) => item.sectionId === sectionId);
-  const sectionAds = useMemo(
-    () => (SHOW_FAKE_ADS ? generateAds(`section-${sectionId}`, 6) : []),
-    [sectionId],
-  );
 
   return (
     <div className="space-y-2">
@@ -375,16 +405,6 @@ function SectionPanel({
         </div>
       ) : null}
 
-      {SHOW_FAKE_ADS ? (
-        <div>
-          <h5 className="section-subtitle">SPONSOR ADS / 推广位 ({sectionAds.length})</h5>
-          <div className="compact-grid mt-1.5">
-            {sectionAds.map((ad) => (
-              <AdCard key={ad.id} ad={ad} />
-            ))}
-          </div>
-        </div>
-      ) : null}
     </div>
   );
 }
@@ -392,9 +412,10 @@ function SectionPanel({
 export default function Home() {
   const [activeTab, setActiveTab] = useState<ActiveTab>("all");
   const [fullscreenAsset, setFullscreenAsset] = useState<FullscreenAsset>(null);
-  const headerAds = useMemo(() => generateAds("header-ads", 6), []);
-  const railLeftAds = useMemo(() => generateAds("rail-left", 5), []);
-  const railRightAds = useMemo(() => generateAds("rail-right", 5), []);
+  const topAd = useMemo(() => generateAds("top-edge", 1)[0], []);
+  const bottomAd = useMemo(() => generateAds("bottom-edge", 1)[0], []);
+  const leftColumnAds = useMemo(() => generateAds("left-edge", 10), []);
+  const rightColumnAds = useMemo(() => generateAds("right-edge", 10), []);
 
   useEffect(() => {
     if (!fullscreenAsset) {
@@ -428,104 +449,113 @@ export default function Home() {
   );
 
   return (
-    <div className="min-h-screen px-2 py-2 sm:px-3 sm:py-3">
-      <main className="mx-auto max-w-[1520px]">
-        <header className="dense-panel sticky top-0 z-40 overflow-hidden">
-          <div className="top-strip">
-            <span>Autofiction Archive / 项目资料库</span>
-            <span>Dense Mode Enabled</span>
-            <span>Update JSON to edit all media + docs</span>
-          </div>
-          <div className="grid gap-2 border-b border-[#c9dbff] p-2 sm:grid-cols-[1.5fr_1fr]">
-            <div>
-              <h1 className="text-[20px] font-bold uppercase leading-[1] tracking-tight text-[#b01800]">
-                {archiveData.project.title}
-              </h1>
-              <p className="mt-1 text-[12px] font-medium text-[#17437f]">{archiveData.project.subtitle}</p>
-            </div>
-            <p className="rounded border border-[#a6bfe8] bg-[#f9fcff] px-2 py-1 text-[11px] leading-[1.25] text-[#1b3762]">
-              {archiveData.project.notice}
-            </p>
-          </div>
+    <div className="min-h-screen">
+      {SHOW_FAKE_ADS ? (
+        <div className="bg-[#d98f37] p-px">
+          <AdBanner ad={topAd} />
+        </div>
+      ) : null}
 
-          <nav className="grid grid-cols-2 gap-1.5 p-2 sm:grid-cols-4 lg:grid-cols-7">
-            <button
-              type="button"
-              onClick={() => setActiveTab("all")}
-              className={`folder-tab ${activeTab === "all" ? "folder-tab-active" : ""}`}
-            >
-              总览 All
-            </button>
-            {archiveData.tabs.map((tab) => (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => setActiveTab(tab.id)}
-                className={`folder-tab ${activeTab === tab.id ? "folder-tab-active" : ""}`}
-              >
-                {tab.label}
-              </button>
+      <div
+        className={
+          SHOW_FAKE_ADS ? "grid grid-cols-1 gap-px bg-[#d98f37] lg:grid-cols-[150px_minmax(0,1fr)_150px]" : "block"
+        }
+      >
+        {SHOW_FAKE_ADS ? (
+          <aside className="hidden flex-col gap-px lg:flex">
+            {leftColumnAds.map((ad) => (
+              <AdCard key={ad.id} ad={ad} small />
             ))}
-          </nav>
+          </aside>
+        ) : null}
 
-          {SHOW_FAKE_ADS ? (
-            <div className="grid grid-cols-2 gap-1 border-t border-[#d6e5ff] bg-[#fff3d2] p-1.5 md:grid-cols-3 lg:grid-cols-6">
-              {headerAds.map((ad) => (
-                <AdCard key={ad.id} ad={ad} small />
-              ))}
-            </div>
-          ) : null}
-        </header>
+        <div className="px-2 py-2 sm:px-3 sm:py-3">
+          <main className="mx-auto max-w-[1520px]">
+            <header className="dense-panel sticky top-0 z-40 overflow-hidden">
+              <div className="top-strip">
+                <span>Autofiction Archive / 项目资料库</span>
+                <span>Dense Mode Enabled</span>
+                <span>Update JSON to edit all media + docs</span>
+              </div>
+              <div className="grid gap-2 border-b border-[#c9dbff] p-2 sm:grid-cols-[1.5fr_1fr]">
+                <div>
+                  <h1 className="text-[20px] font-bold uppercase leading-[1] tracking-tight text-[#b01800]">
+                    {archiveData.project.title}
+                  </h1>
+                  <p className="mt-1 text-[12px] font-medium text-[#17437f]">{archiveData.project.subtitle}</p>
+                </div>
+                <p className="rounded border border-[#a6bfe8] bg-[#f9fcff] px-2 py-1 text-[11px] leading-[1.25] text-[#1b3762]">
+                  {archiveData.project.notice}
+                </p>
+              </div>
 
-        <section
-          className={
-            isAllView
-              ? "mt-2 columns-1 gap-2 sm:mt-3 md:columns-2 xl:columns-3"
-              : "mt-2 flex justify-center sm:mt-3"
-          }
-        >
-          {visibleTabs.map((tab) => (
-            <article
-              key={tab.id}
+              <nav className="grid grid-cols-2 gap-1.5 p-2 sm:grid-cols-4 lg:grid-cols-7">
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("all")}
+                  className={`folder-tab ${activeTab === "all" ? "folder-tab-active" : ""}`}
+                >
+                  总览 All
+                </button>
+                {archiveData.tabs.map((tab) => (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => setActiveTab(tab.id)}
+                    className={`folder-tab ${activeTab === tab.id ? "folder-tab-active" : ""}`}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </nav>
+            </header>
+
+            <section
               className={
                 isAllView
-                  ? "dense-panel mb-2 inline-block w-full break-inside-avoid-column"
-                  : "dense-panel w-full max-w-[920px]"
+                  ? "mt-2 columns-1 gap-2 sm:mt-3 md:columns-2 xl:columns-3"
+                  : "mt-2 flex justify-center sm:mt-3"
               }
             >
-              <div className="border-b border-[#c9dbff] px-2 py-1.5">
-                <h2 className="text-[12px] font-bold uppercase text-[#0f3b7b]">{tab.label}</h2>
-                <p className="mt-0.5 text-[10px] leading-[1.2] text-[#385987]">{tab.description}</p>
-              </div>
-              <div className="p-2">
-                <SectionPanel
-                  sectionId={tab.id}
-                  onImageExpand={(item) => setFullscreenAsset({ kind: "image", item })}
-                  onModelExpand={(item) => setFullscreenAsset({ kind: "model", item })}
-                />
-              </div>
-            </article>
-          ))}
-        </section>
-      </main>
+              {visibleTabs.map((tab) => (
+                <article
+                  key={tab.id}
+                  className={
+                    isAllView
+                      ? "dense-panel mb-2 inline-block w-full break-inside-avoid-column"
+                      : "dense-panel w-full max-w-[920px]"
+                  }
+                >
+                  <div className="border-b border-[#c9dbff] px-2 py-1.5">
+                    <h2 className="text-[12px] font-bold uppercase text-[#0f3b7b]">{tab.label}</h2>
+                    <p className="mt-0.5 text-[10px] leading-[1.2] text-[#385987]">{tab.description}</p>
+                  </div>
+                  <div className="p-2">
+                    <SectionPanel
+                      sectionId={tab.id}
+                      onImageExpand={(item) => setFullscreenAsset({ kind: "image", item })}
+                      onModelExpand={(item) => setFullscreenAsset({ kind: "model", item })}
+                    />
+                  </div>
+                </article>
+              ))}
+            </section>
+          </main>
+        </div>
+
+        {SHOW_FAKE_ADS ? (
+          <aside className="hidden flex-col gap-px lg:flex">
+            {rightColumnAds.map((ad) => (
+              <AdCard key={ad.id} ad={ad} small />
+            ))}
+          </aside>
+        ) : null}
+      </div>
 
       {SHOW_FAKE_ADS ? (
-        <aside className="pointer-events-none fixed left-1 top-20 z-30 hidden w-[150px] space-y-1.5 2xl:block">
-          {railLeftAds.map((ad) => (
-            <div key={ad.id} className="pointer-events-auto">
-              <AdCard ad={ad} small />
-            </div>
-          ))}
-        </aside>
-      ) : null}
-      {SHOW_FAKE_ADS ? (
-        <aside className="pointer-events-none fixed right-1 top-20 z-30 hidden w-[150px] space-y-1.5 2xl:block">
-          {railRightAds.map((ad) => (
-            <div key={ad.id} className="pointer-events-auto">
-              <AdCard ad={ad} small />
-            </div>
-          ))}
-        </aside>
+        <div className="bg-[#d98f37] p-px">
+          <AdBanner ad={bottomAd} />
+        </div>
       ) : null}
 
       {fullscreenAsset ? (

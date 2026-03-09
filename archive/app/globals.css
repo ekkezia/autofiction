@@ -144,6 +144,22 @@ select {
   }
 }
 
+.ad-marquee-track {
+  display: inline-flex;
+  min-width: max-content;
+  gap: 1.5rem;
+  animation: adMarquee 20s linear infinite;
+}
+
+@keyframes adMarquee {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
 .ad-card {
   animation: adShift 2.8s ease-in-out infinite;
 }

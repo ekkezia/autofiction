@@ -1,36 +1,63 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Autofiction Archive
 
-## Getting Started
+Dense archive/documentation site built with Next.js + Tailwind.
 
-First, run the development server:
+## Development
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open `http://localhost:3000`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Asset Compression
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+A bulk compression script is available at `scripts/compress-assets.mjs` for files under `public/assets`.
 
-## Learn More
+### Commands
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+# scan only (no writes)
+npm run compress:assets:dry
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+# compress to a new output folder (default: public/assets-compressed)
+npm run compress:assets
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### Common usage
 
-## Deploy on Vercel
+```bash
+# stronger image compression
+npm run compress:assets -- --images-only --quality 68 --max-width 1920 --max-height 1920
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+# video-only compression
+npm run compress:assets -- --videos-only --crf 30 --preset veryfast
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+# overwrite originals (destructive)
+npm run compress:assets -- --in-place
+```
+
+### Flags reference
+
+- `--root <path>`: source folder to scan (default: `public/assets`)
+- `--out <path>`: output folder when not using in-place mode (default: `public/assets-compressed`)
+- `--in-place`: overwrite source files directly (destructive)
+- `--dry-run`: scan and report only, no files written
+- `--images-only`: process only image formats
+- `--videos-only`: process only video formats
+- `--quality <1-100>`: image quality setting (default: `72`)
+- `--max-width <px>`: max output image width (default: `2200`)
+- `--max-height <px>`: max output image height (default: `2200`)
+- `--crf <0-51>`: video quality for H.264 (default: `28`; higher = smaller + lower quality)
+- `--preset <name>`: ffmpeg encode speed preset (default: `veryfast`)
+- `--audio-bitrate <kbps>`: video audio bitrate (default: `128`)
+- `--limit <n>`: process only first `n` files (useful for testing)
+- `--help`: print full CLI help
+
+### Notes
+
+- Images are compressed with `sharp`.
+- Videos are compressed with `ffmpeg` (`.mov/.mp4/.m4v`).
+- `.gif`, `.glb`, `.gltf`, `.svg`, `.webm` are copied as-is when writing to an output folder.
+- Use `--dry-run` first before any in-place operation.
