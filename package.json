@@ -1,0 +1,9 @@
+{
+  "name": "autofiction",
+  "private": true,
+  "workspaces": [
+    "packages/*",
+    "matchfit",
+    "ticketing"
+  ]
+}

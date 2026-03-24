@@ -14,10 +14,12 @@
     "@react-three/fiber": "^8.16.0",
     "@react-three/drei": "^9.105.0",
     "three": "^0.166.0",
-    "react-pdf": "^9.1.0"
+    "react-pdf": "^9.1.0",
+    "@autofiction/ui": "*"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.3.0",
+    "@tailwindcss/vite": "^4.0.0",
     "vite": "^5.2.0"
   }
 }

@@ -1,0 +1,29 @@
+/* ─── Autofiction shared design tokens (Tailwind v4 @theme) ──────────────── */
+@theme {
+  /* Typography */
+  --font-portal: 'Noto Sans SC', 'Microsoft YaHei', SimSun, sans-serif;
+
+  /* Portal blues */
+  --color-portal-dark:        #1b3d82;
+  --color-portal-header-from: #00008c;
+  --color-portal-header-to:   #1a77ff;
+  --color-portal-bar-border:  #0a1e50;
+  --color-portal-link:        #99ccff;
+  --color-portal-charge:      #33ddff;
+
+  /* Gold / accent */
+  --color-accent-gold:        #ffcc00;
+  --color-accent-gold-light:  #ffee44;
+  --color-accent-gold-dark:   #cc8800;
+  --color-border-gold:        #aa8800;
+
+  /* Reds */
+  --color-hero-red:           #cc0000;
+  --color-hero-red-dark:      #990000;
+  --color-hero-red-deeper:    #770000;
+
+  /* Text */
+  --color-text-blue:          #0000cc;
+  --color-text-navy:          #000055;
+  --color-text-ink:           #111111;
+}

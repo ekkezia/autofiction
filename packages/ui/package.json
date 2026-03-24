@@ -1,0 +1,7 @@
+{
+  "name": "@autofiction/ui",
+  "version": "1.0.0",
+  "exports": {
+    "./theme.css": "./theme.css"
+  }
+}

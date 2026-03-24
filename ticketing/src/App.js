@@ -64,7 +64,7 @@ const GLOBAL_CSS = `
 
   input::placeholder { color: rgba(255,245,235,.25); }
   input:focus, select:focus { outline: none; border-color: rgba(212,160,23,.45) !important; }
-  button { font-family: 'DM Sans', sans-serif; }
+  button { font-family: 'Noto Sans SC', 'Microsoft YaHei', SimSun, sans-serif; }
   * { box-sizing: border-box; }
 `;
 

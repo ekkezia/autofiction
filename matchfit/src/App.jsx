@@ -8,9 +8,16 @@ import 'react-pdf/dist/Page/TextLayer.css';
 
 pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
-// Strip "public/" prefix so Vite serves from the public root
-function assetPath(src) {
-  return src.startsWith('public/') ? src.slice('public'.length) : src;
+const SUPABASE = import.meta.env.VITE_SUPABASE_STORAGE;
+
+// Convert local asset path → Supabase storage URL; pass external URLs through unchanged
+function storageUrl(src) {
+  if (!src || src.startsWith('http')) return src;
+  const path = src.startsWith('public/assets/') ? src.slice('public/assets/'.length)
+    : src.startsWith('/assets/')               ? src.slice('/assets/'.length)
+    : src.startsWith('assets/')                ? src.slice('assets/'.length)
+    : src;
+  return `${SUPABASE}/${path}`;
 }
 
 function GlbModel({ src }) {
@@ -19,7 +26,7 @@ function GlbModel({ src }) {
 }
 
 function GlbViewer({ src, title }) {
-  const path = assetPath(src);
+  const path = storageUrl(src);
   return (
     <div className="glb-viewer">
       <Canvas camera={{ position: [0, 6, 6], fov: 45 }}>
@@ -295,11 +302,53 @@ function VertCol({ text }) {
   );
 }
 
+// ─── ImageModal ───────────────────────────────────────────────────────────────
+function ImageModal({ src, title, onClose }) {
+  return (
+    <div className="pdf-overlay" onClick={onClose}>
+      <div className="image-modal" onClick={e => e.stopPropagation()}>
+        <div className="pdf-modal-bar">
+          <span className="pdf-modal-title">{title}</span>
+          <button className="pdf-close-btn" onClick={onClose}>关闭 / Close ✕</button>
+        </div>
+        <div className="image-modal-body">
+          <img src={src} alt={title} style={{ maxWidth: '100%', maxHeight: '80vh', display: 'block', objectFit: 'contain' }} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── VideoModal ───────────────────────────────────────────────────────────────
+function VideoModal({ src, title, onClose }) {
+  return (
+    <div className="pdf-overlay" onClick={onClose}>
+      <div className="video-modal" onClick={e => e.stopPropagation()}>
+        <div className="pdf-modal-bar">
+          <span className="pdf-modal-title">🎬 {title}</span>
+          <button className="pdf-close-btn" onClick={onClose}>关闭 / Close ✕</button>
+        </div>
+        <div className="video-modal-body">
+          <video
+            src={src}
+            controls
+            autoPlay
+            style={{ maxWidth: '100%', maxHeight: '70vh', display: 'block', background: '#000' }}
+          >
+            <source src={src} type="video/mp4" />
+            <source src={src} type="video/quicktime" />
+          </video>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── PdfModal ─────────────────────────────────────────────────────────────────
 function PdfModal({ src, title, onClose }) {
   const [numPages, setNumPages] = useState(null);
   const [pageNumber, setPageNumber] = useState(1);
-  const path = src.startsWith('/') ? src : `/${src}`;
+  const path = src.startsWith('http') ? src : src.startsWith('/') ? src : `/${src}`;
 
   return (
     <div className="pdf-overlay" onClick={onClose}>
@@ -359,7 +408,9 @@ function StoriesContent({ t }) {
 // ─── ArchiveContent ───────────────────────────────────────────────────────────
 function ArchiveContent({ t }) {
   const [activeTab, setActiveTab] = useState('all');
-  const [pdfOpen, setPdfOpen] = useState(null); // { src, title }
+  const [pdfOpen, setPdfOpen] = useState(null);
+  const [videoOpen, setVideoOpen] = useState(null);
+  const [imageOpen, setImageOpen] = useState(null); // { src, title }
 
   const visibleSections = activeTab === 'all'
     ? archiveData.tabs
@@ -392,10 +443,11 @@ function ArchiveContent({ t }) {
       <div className="archive-body">
         {visibleSections.map(tab => {
           const images  = archiveData.imageAssets.filter(a => a.sectionId === tab.id);
+          const videos  = (archiveData.videoAssets  || []).filter(a => a.sectionId === tab.id);
           const models  = (archiveData.modelAssets  || []).filter(a => a.sectionId === tab.id);
           const docs    = (archiveData.documents    || []).filter(a => a.sectionId === tab.id);
           const iframes = (archiveData.iframeAssets || []).filter(a => a.sectionId === tab.id);
-          if (!images.length && !models.length && !docs.length && !iframes.length) return null;
+          if (!images.length && !videos.length && !models.length && !docs.length && !iframes.length) return null;
 
           return (
             <div key={tab.id} className="archive-section">
@@ -409,10 +461,38 @@ function ArchiveContent({ t }) {
                   {images.map(item => (
                     <div key={item.id} className="archive-card">
                       <img
-                        src={item.src}
+                        src={storageUrl(item.src)}
                         className="archive-thumb"
                         alt={item.title}
+                        style={{ cursor: 'zoom-in' }}
+                        onClick={() => setImageOpen({ src: storageUrl(item.src), title: item.title })}
                       />
+                      <div className="archive-card-body">
+                        <div className="archive-card-title">{item.title}</div>
+                        {item.author && <div className="archive-card-author">{t.by}: {item.author}</div>}
+                        <div className="archive-card-desc">{item.description}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {videos.length > 0 && (
+                <div className="archive-grid">
+                  {videos.map(item => (
+                    <div key={item.id} className="archive-card" style={{flexDirection:'column',gap:4}}>
+                      <div
+                        className="video-thumb"
+                        onClick={() => setVideoOpen({ src: storageUrl(item.src), title: item.title })}
+                      >
+                        <video
+                          src={storageUrl(item.src)}
+                          muted
+                          preload="metadata"
+                          style={{width:'100%',height:'100%',objectFit:'cover',display:'block',pointerEvents:'none'}}
+                        />
+                        <div className="video-play-btn">▶</div>
+                      </div>
                       <div className="archive-card-body">
                         <div className="archive-card-title">{item.title}</div>
                         {item.author && <div className="archive-card-author">{t.by}: {item.author}</div>}
@@ -432,7 +512,7 @@ function ArchiveContent({ t }) {
                     <div className="archive-card-desc">{doc.description}</div>
                     {doc.excerpt && <div className="archive-excerpt">"{doc.excerpt}"</div>}
                     {isPdf && (
-                      <button className="view-pdf-btn" onClick={() => setPdfOpen({ src: doc.directory, title: doc.title })}>
+                      <button className="view-pdf-btn" onClick={() => setPdfOpen({ src: storageUrl(doc.directory), title: doc.title })}>
                         📄 {t.viewPdf}
                       </button>
                     )}
@@ -484,6 +564,22 @@ function ArchiveContent({ t }) {
           src={pdfOpen.src}
           title={pdfOpen.title}
           onClose={() => setPdfOpen(null)}
+        />
+      )}
+
+      {videoOpen && (
+        <VideoModal
+          src={videoOpen.src}
+          title={videoOpen.title}
+          onClose={() => setVideoOpen(null)}
+        />
+      )}
+
+      {imageOpen && (
+        <ImageModal
+          src={imageOpen.src}
+          title={imageOpen.title}
+          onClose={() => setImageOpen(null)}
         />
       )}
     </div>
