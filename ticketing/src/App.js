@@ -1,11 +1,22 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { io } from "socket.io-client";
+import TicketMode from "./TicketMode";
+import AdminMode from "./AdminMode";
+import ViewerMode from "./ViewerMode";
+import BarcodeScanner from "./BarcodeScanner";
+// import Quagga from "quagga"; // Only needed in AdminMode
 
 /* ── CONSTANTS ─────────────────────────────────────────────────────────────── */
-const MQTT_URL  = "wss://broker.emqx.io:8084/mqtt";
-const T_NEW     = "lovequeue_v4/new";
-const T_VERIFY  = "lovequeue_v4/verify";
-const CLIENT_ID = "lq_" + Math.random().toString(36).slice(2, 10);
+const SOCKET_URL = "http://localhost:4001";
 const COUNTERS  = ["A1","A2","A3","B1","B2","C1"];
+const parseTicketNumber = (raw) => {
+  const value = String(raw || "").trim();
+  if (!value) return "";
+  const prefixed = value.match(/MATCHFIT-(\d+)/i);
+  if (prefixed) return prefixed[1];
+  const digits = value.match(/\d+/);
+  return digits ? digits[0] : "";
+};
 
 let _seq = 1000 + Math.floor(Math.random() * 200);
 const mkNum     = () => String(++_seq);
@@ -160,7 +171,7 @@ const TicketCard = ({ ticket, isPrinting, dragProps, style }) => {
             background:"#FFF5EB", border:"1px solid rgba(196,30,58,.12)",
             borderRadius:7, overflow:"hidden", flexShrink:0, padding:3
           }}>
-            <QR value={`LOVEQUEUE-${ticket.number}`} size={74} />
+            <QR value={`MATCHFIT-${ticket.number}`} size={74} />
           </div>
           <div style={{flex:1,minWidth:0}}>
             <TRow l="COUNTER" v={ticket.counter} vs={{
@@ -278,8 +289,8 @@ export default function App() {
   const [tickets,     setTickets]     = useState([]);
   const [curTicket,   setCurTicket]   = useState(null);
   const [printing,    setPrinting]    = useState(false);
-  const [mqttClient,  setMqttClient]  = useState(null);
   const [connected,   setConnected]   = useState(false);
+  const [statusMsg,   setStatusMsg]   = useState("Press the button to take a number.");
   const [pos,         setPos]         = useState({x:0,y:0});
   const [isThrow,     setIsThrow]     = useState(false);
   const [trashWig,    setTrashWig]    = useState(false);
@@ -291,6 +302,11 @@ export default function App() {
 
   const dragRef  = useRef({active:false,ox:0,oy:0,vx:0,vy:0,px:0,py:0,t:0});
   const trashRef = useRef(null);
+  const socketRef = useRef(null);
+  const currentTicketNumberRef = useRef(null);
+  const printingTimeoutRef = useRef(null);
+  const postPrintStateTimeoutRef = useRef(null);
+  const idleStateTimeoutRef = useRef(null);
 
   /* ── Inject CSS & fonts ─────────────────────────────── */
   useEffect(() => {
@@ -303,89 +319,207 @@ export default function App() {
     return () => { s.remove(); l.remove(); };
   }, []);
 
-  /* ── Load MQTT.js from CDN ──────────────────────────── */
-  useEffect(() => {
-    let client = null;
-    const script = document.createElement("script");
-    script.src = "https://unpkg.com/mqtt@5/dist/mqtt.min.js";
-    script.onload = () => {
-      try {
-        client = window.mqtt.connect(MQTT_URL, { clientId:CLIENT_ID, clean:true, reconnectPeriod:4000 });
-        client.on("connect", () => setConnected(true));
-        client.on("close",   () => setConnected(false));
-        client.on("error",   () => setConnected(false));
-        client.on("message", (topic, msg) => {
-          try {
-            const p = JSON.parse(msg.toString());
-            if (topic === T_NEW)    handleNewTicket(p.number || mkNum());
-            if (topic === T_VERIFY) handleVerify(String(p.number), p.counter || "A1");
-          } catch {}
-        });
-        client.subscribe([T_NEW, T_VERIFY]);
-        setMqttClient(client);
-      } catch(e) { console.warn("MQTT init failed:", e); }
+  const showToast = useCallback((msg) => {
+    setToast(msg);
+    setTimeout(() => setToast(null), 3800);
+  }, []);
+
+  const normalizeTicket = useCallback((ticketInfo, defaultStatus = "waiting") => {
+    if (!ticketInfo) return null;
+    const number = parseTicketNumber(ticketInfo.number ?? ticketInfo);
+    if (!number) return null;
+    return {
+      id: ticketInfo.id || `ticket-${number}`,
+      number,
+      counter: ticketInfo.counter || "A1",
+      status: ticketInfo.status || defaultStatus,
+      time: ticketInfo.time || mkTime(),
+      createdAt: ticketInfo.createdAt || Date.now(),
+      verifiedAt: ticketInfo.verifiedAt
     };
-    script.onerror = () => console.log("MQTT script blocked – offline mode active");
-    document.head.appendChild(script);
-    return () => { client?.end(); };
   }, []);
 
   /* ── Ticket Actions ─────────────────────────────────── */
-  const handleNewTicket = useCallback((num) => {
-    const t = mkTicket(String(num));
-    setTickets(prev => [t, ...prev]);
-    setCurTicket(t);
-    setPos({x:0,y:0});
-    setPrinting(true);
-    setTimeout(() => setPrinting(false), 1400);
-  }, []);
+  const handleNewTicket = useCallback((ticketInfo, options = {}) => {
+    const normalized = normalizeTicket(ticketInfo, "waiting");
+    if (!normalized) return;
+    const setAsCurrent = options.setAsCurrent !== false;
+
+    setTickets((prev) => {
+      const existingIndex = prev.findIndex((t) => t.number === normalized.number);
+      if (existingIndex === -1) return [normalized, ...prev];
+      const next = [...prev];
+      next[existingIndex] = { ...next[existingIndex], ...normalized };
+      return next;
+    });
+
+    if (setAsCurrent) {
+      currentTicketNumberRef.current = normalized.number;
+      setCurTicket(normalized);
+      setPos({x:0,y:0});
+    }
+  }, [normalizeTicket]);
 
   const handleVerify = useCallback((number, counter) => {
+    const target = parseTicketNumber(number);
+    if (!target) return;
     setTickets(prev => prev.map(t =>
-      t.number === number ? {...t, status:"verified", counter: counter||t.counter} : t
+      t.number === target ? {...t, status:"verified", counter: counter||t.counter, verifiedAt: Date.now()} : t
     ));
     setCurTicket(prev =>
-      prev?.number === number ? {...prev, status:"verified", counter: counter||prev.counter} : prev
+      prev?.number === target ? {...prev, status:"verified", counter: counter||prev.counter, verifiedAt: Date.now()} : prev
     );
     setPetals(Array.from({length:14},(_,i) => ({
       id:Date.now()+i, x:Math.random()*window.innerWidth, delay:Math.random()*.9
     })));
     setTimeout(() => setPetals([]), 6000);
-    showToast(`✓ Ticket ${number} verified → Counter ${counter}`);
+    showToast(`✓ Ticket ${target} verified → Counter ${counter}`);
+  }, [showToast]);
+
+  const schedulePostPrintMessaging = useCallback((ticketNumber) => {
+    if (postPrintStateTimeoutRef.current) clearTimeout(postPrintStateTimeoutRef.current);
+    if (idleStateTimeoutRef.current) clearTimeout(idleStateTimeoutRef.current);
+
+    postPrintStateTimeoutRef.current = setTimeout(() => {
+      setStatusMsg(`Ticket ${ticketNumber} printed. Please sit down and wait.`);
+      idleStateTimeoutRef.current = setTimeout(() => {
+        setStatusMsg("Press the button to take a number.");
+      }, 3000);
+    }, 1400);
   }, []);
 
+  useEffect(() => {
+    const socket = io(SOCKET_URL);
+    socketRef.current = socket;
+    window.socket = socket;
+
+    const onConnect = () => {
+      setConnected(true);
+      socket.emit("get_current_ticket");
+      socket.emit("get_tickets_snapshot");
+    };
+
+    const onDisconnect = () => {
+      setConnected(false);
+    };
+
+    const onCurrentTicketUpdated = (ticketInfo) => {
+      handleNewTicket(ticketInfo, { setAsCurrent: true });
+      const ticketNumber = parseTicketNumber(ticketInfo?.number);
+      if (ticketNumber) setStatusMsg(`Current ticket updated: ${ticketNumber}`);
+    };
+
+    const onArduinoRequest = (ticketInfo) => {
+      const ticketNumber = parseTicketNumber(ticketInfo?.number);
+      if (ticketNumber) {
+        handleNewTicket(ticketInfo, { setAsCurrent: true });
+        setStatusMsg(`Guest requested ticket: ${ticketNumber}`);
+      } else {
+        setStatusMsg("Guest is requesting ticket...");
+      }
+    };
+
+    const onPrintingTicket = (ticketInfo) => {
+      setPrinting(true);
+      if (printingTimeoutRef.current) clearTimeout(printingTimeoutRef.current);
+      printingTimeoutRef.current = setTimeout(() => setPrinting(false), 1400);
+      const ticketNumber = parseTicketNumber(ticketInfo?.number);
+      if (ticketNumber) {
+        handleNewTicket(ticketInfo, { setAsCurrent: true });
+        setStatusMsg(`Printing ticket number ${ticketNumber}...`);
+        schedulePostPrintMessaging(ticketNumber);
+      }
+    };
+
+    const onTicketsSnapshot = (snapshot = []) => {
+      const normalized = snapshot
+        .map((t) => normalizeTicket(t, t?.status || "waiting"))
+        .filter(Boolean)
+        .sort((a, b) => Number(b.number) - Number(a.number));
+      if (!normalized.length) return;
+      setTickets(normalized);
+      const latest = normalized[0];
+      currentTicketNumberRef.current = latest.number;
+      setCurTicket(latest);
+    };
+
+    const onTicketVerified = (ticketInfo) => {
+      const normalized = normalizeTicket({ ...ticketInfo, status: "verified" }, "verified");
+      if (!normalized) return;
+      handleVerify(normalized.number, normalized.counter);
+      setTickets((prev) => prev.map((t) =>
+        t.number === normalized.number ? { ...t, ...normalized, status: "verified" } : t
+      ));
+      setStatusMsg(`Ticket ${normalized.number} verified at counter ${normalized.counter}`);
+    };
+
+    const onVerificationError = (err = {}) => {
+      if (err.reason === "ticket_not_found") {
+        showToast(`Ticket ${err.number || "?"} not found`);
+      } else {
+        showToast("Ticket verification failed");
+      }
+    };
+
+    socket.on("connect", onConnect);
+    socket.on("disconnect", onDisconnect);
+    socket.on("current_ticket_updated", onCurrentTicketUpdated);
+    socket.on("arduino_request", onArduinoRequest);
+    socket.on("printing_ticket", onPrintingTicket);
+    socket.on("tickets_snapshot", onTicketsSnapshot);
+    socket.on("ticket_verified", onTicketVerified);
+    socket.on("ticket_verification_error", onVerificationError);
+
+    return () => {
+      socket.off("connect", onConnect);
+      socket.off("disconnect", onDisconnect);
+      socket.off("current_ticket_updated", onCurrentTicketUpdated);
+      socket.off("arduino_request", onArduinoRequest);
+      socket.off("printing_ticket", onPrintingTicket);
+      socket.off("tickets_snapshot", onTicketsSnapshot);
+      socket.off("ticket_verified", onTicketVerified);
+      socket.off("ticket_verification_error", onVerificationError);
+      if (printingTimeoutRef.current) clearTimeout(printingTimeoutRef.current);
+      if (postPrintStateTimeoutRef.current) clearTimeout(postPrintStateTimeoutRef.current);
+      if (idleStateTimeoutRef.current) clearTimeout(idleStateTimeoutRef.current);
+      socket.disconnect();
+      if (window.socket === socket) {
+        delete window.socket;
+      }
+      socketRef.current = null;
+    };
+  }, [handleNewTicket, handleVerify, normalizeTicket, schedulePostPrintMessaging, showToast]);
+
   const simulateArduino = useCallback(() => {
-    const num = mkNum();
-    if (mqttClient?.connected) {
-      mqttClient.publish(T_NEW, JSON.stringify({number:num}));
-    } else {
-      handleNewTicket(num);
+    socketRef.current?.emit("request_ticket");
+  }, []);
+
+  const emitVerifyTicket = useCallback((rawNumber, counter) => {
+    const number = parseTicketNumber(rawNumber);
+    if (!number) {
+      showToast("Invalid ticket number from QR");
+      return;
     }
-  }, [mqttClient, handleNewTicket]);
+    socketRef.current?.emit("verify_ticket", { number, counter });
+  }, [showToast]);
 
   const adminVerify = useCallback(() => {
-    const n = adminInput.trim();
+    const n = parseTicketNumber(adminInput);
     if (!n) return;
-    if (mqttClient?.connected) {
-      mqttClient.publish(T_VERIFY, JSON.stringify({number:n, counter:adminCtr}));
-    } else {
-      handleVerify(n, adminCtr);
-    }
+    emitVerifyTicket(n, adminCtr);
     setAdminInput("");
-  }, [adminInput, adminCtr, mqttClient, handleVerify]);
+  }, [adminInput, adminCtr, emitVerifyTicket]);
 
   const verifyFromList = useCallback((ticket, counter) => {
-    if (mqttClient?.connected) {
-      mqttClient.publish(T_VERIFY, JSON.stringify({number:ticket.number, counter}));
-    } else {
-      handleVerify(ticket.number, counter);
-    }
-  }, [mqttClient, handleVerify]);
+    emitVerifyTicket(ticket.number, counter);
+  }, [emitVerifyTicket]);
 
-  const showToast = (msg) => {
-    setToast(msg);
-    setTimeout(()=>setToast(null), 3800);
-  };
+  const verifyFromScan = useCallback((rawNumber) => {
+    const number = parseTicketNumber(rawNumber);
+    if (!number) return;
+    setAdminInput(number);
+    emitVerifyTicket(number, adminCtr);
+  }, [adminCtr, emitVerifyTicket]);
 
   /* ── Drag / Flick ───────────────────────────────────── */
   const onPointerDown = useCallback((e) => {
@@ -428,9 +562,6 @@ export default function App() {
       setTimeout(()=>setTrashWig(false), 650);
     }, 520);
   }, [curTicket]);
-
-  const waiting  = tickets.filter(t=>t.status==="waiting");
-  const verified = tickets.filter(t=>t.status==="verified");
 
   /* ── RENDER ─────────────────────────────────────────── */
   return (
@@ -535,10 +666,10 @@ export default function App() {
             {connected && <div style={{
               position:"absolute",inset:0,borderRadius:"50%",background:"rgba(42,170,138,.5)",
               animation:"ping 1.6s ease-in-out infinite"
-            }}/>}
+            }}/>} 
           </div>
           <span style={{fontSize:8.5,letterSpacing:1.5,color:"rgba(255,245,235,.35)"}}>
-            {connected ? "MQTT LIVE" : "OFFLINE"}
+            {connected ? "SOCKET LIVE" : "OFFLINE"}
           </span>
         </div>
       </nav>
@@ -563,6 +694,7 @@ export default function App() {
           <TicketMode
             curTicket={curTicket}
             printing={printing}
+            statusMsg={statusMsg}
             pos={pos} isThrow={isThrow} isDragging={isDragging}
             onPointerDown={onPointerDown}
             onPointerMove={onPointerMove}
@@ -572,14 +704,7 @@ export default function App() {
           />
         )}
         {mode==="admin" && (
-          <AdminMode
-            tickets={tickets}
-            adminInput={adminInput} setAdminInput={setAdminInput}
-            adminCtr={adminCtr} setAdminCtr={setAdminCtr}
-            onVerify={adminVerify}
-            onVerifyList={verifyFromList}
-            counters={COUNTERS}
-          />
+          <BarcodeScanner />
         )}
         {mode==="viewer" && <ViewerMode tickets={tickets}/>}
       </main>
@@ -587,424 +712,4 @@ export default function App() {
   );
 }
 
-/* ═══════════════════════════════════════════════════════════════════════════ */
-/*  MODE 1 — TICKET                                                            */
-/* ═══════════════════════════════════════════════════════════════════════════ */
-function TicketMode({ curTicket, printing, pos, isThrow, isDragging, onPointerDown, onPointerMove, onPointerUp, onSimulate, connected }) {
-  return (
-    <div style={{
-      height:"calc(100vh - 62px)", display:"flex", flexDirection:"column",
-      alignItems:"center", justifyContent:"center", position:"relative"
-    }}>
-      {/* Star/auspicious pattern bg */}
-      <div style={{
-        position:"absolute", inset:0, zIndex:0, pointerEvents:"none", opacity:.032,
-        backgroundImage:`url("data:image/svg+xml,%3Csvg width='70' height='70' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath fill='%23D4A017' d='M35 8l3.5 10.5H50l-8.8 6.4 3.5 10.5L35 29l-9.7 6.4 3.5-10.5L20 18.5h11.5z'/%3E%3C/svg%3E")`,
-        backgroundSize:"70px 70px"
-      }}/>
-
-      {!curTicket ? (
-        /* Empty state */
-        <div style={{textAlign:"center",position:"relative",zIndex:1,padding:"0 20px"}}>
-          <div style={{
-            fontFamily:"'Noto Serif SC',serif", fontSize:13, letterSpacing:4,
-            color:"rgba(212,160,23,.45)", marginBottom:8
-          }}>等候取号</div>
-          <div style={{
-            fontFamily:"'Playfair Display',serif", fontSize:28, fontWeight:900,
-            color:"rgba(255,245,235,.2)", marginBottom:8, letterSpacing:2
-          }}>WAITING FOR TICKET</div>
-          <div style={{
-            fontSize:12, color:"rgba(255,245,235,.22)", marginBottom:44,
-            letterSpacing:1.5, fontFamily:"'Noto Serif SC',serif"
-          }}>请按下按钮取号，或等待 Arduino 信号</div>
-
-          <div style={{
-            width:90, height:90, borderRadius:"50%", margin:"0 auto 40px",
-            background:"linear-gradient(135deg,rgba(196,30,58,.18),rgba(212,160,23,.08))",
-            border:"1px dashed rgba(212,160,23,.28)",
-            display:"flex", alignItems:"center", justifyContent:"center",
-            fontSize:40, animation:"throb 2.5s ease-in-out infinite"
-          }}>🎫</div>
-
-          <SimBtn onClick={onSimulate} label={connected ? "📡  ARDUINO SIGNAL" : "🎫  TAKE A NUMBER"}/>
-          <div style={{
-            marginTop:14, fontSize:9, letterSpacing:2,
-            color:"rgba(255,245,235,.15)"
-          }}>
-            {connected ? "CONNECTED · broker.emqx.io · " + T_NEW : "OFFLINE — CLICK TO SIMULATE ARDUINO"}
-          </div>
-        </div>
-      ) : (
-        /* Ticket in view */
-        <div style={{position:"relative",zIndex:1,display:"flex",flexDirection:"column",alignItems:"center"}}>
-          {/* Verified banner */}
-          {curTicket.status==="verified" && (
-            <div className="scaleIn" style={{
-              textAlign:"center", marginBottom:22,
-              fontFamily:"'Noto Serif SC',serif", fontSize:13, fontWeight:600,
-              color:"#2AAA8A", letterSpacing:2.5
-            }}>
-              ✨ 您的号码已验证！请前往柜台 <span style={{
-                fontFamily:"'Playfair Display',serif",fontWeight:900,fontSize:16
-              }}>{curTicket.counter}</span> ✨
-            </div>
-          )}
-
-          {/* Draggable ticket */}
-          <div
-            onPointerDown={onPointerDown}
-            onPointerMove={onPointerMove}
-            onPointerUp={onPointerUp}
-            style={{
-              transform:`translate(${pos.x}px,${pos.y}px)`,
-              transition: isThrow
-                ? "transform .52s cubic-bezier(.22,.61,.36,1),opacity .52s ease"
-                : isDragging ? "none" : "transform .35s ease",
-              opacity: isThrow ? 0 : 1,
-              filter: isDragging ? "drop-shadow(0 30px 40px rgba(0,0,0,.7))" : undefined
-            }}
-          >
-            <TicketCard ticket={curTicket} isPrinting={printing} dragProps={{}}/>
-          </div>
-
-          {/* Hint text */}
-          <div style={{
-            marginTop:22, fontSize:9, letterSpacing:2, textAlign:"center",
-            color:"rgba(255,245,235,.22)", lineHeight:1.8
-          }}>
-            {curTicket.status==="verified"
-              ? "DRAG & FLICK TO DISMISS  ·  拖拽并抛出以关闭"
-              : "DRAG TICKET FREELY  ·  等待验证中"
-            }
-          </div>
-        </div>
-      )}
-
-      {/* Bottom bar */}
-      <div style={{
-        position:"absolute", bottom:30,
-        display:"flex", flexDirection:"column", alignItems:"center", gap:10, zIndex:1
-      }}>
-        {curTicket && (
-          <SimBtn onClick={onSimulate} label="+ NEW TICKET" small/>
-        )}
-        {!curTicket && null}
-      </div>
-    </div>
-  );
-}
-
-/* ═══════════════════════════════════════════════════════════════════════════ */
-/*  MODE 2 — ADMIN                                                             */
-/* ═══════════════════════════════════════════════════════════════════════════ */
-function AdminMode({ tickets, adminInput, setAdminInput, adminCtr, setAdminCtr, onVerify, onVerifyList, counters }) {
-  const waiting  = tickets.filter(t=>t.status==="waiting");
-  const verified = tickets.filter(t=>t.status==="verified");
-
-  return (
-    <div style={{height:"calc(100vh - 62px)",overflowY:"auto",padding:"26px 22px"}}>
-      <div style={{maxWidth:720, margin:"0 auto"}}>
-
-        {/* Header */}
-        <div style={{marginBottom:26}}>
-          <div style={{
-            fontFamily:"'Playfair Display',serif", fontSize:26, fontWeight:900,
-            color:"#FFF5EB", marginBottom:3
-          }}>验证号码</div>
-          <div style={{fontSize:9,letterSpacing:3.5,color:"rgba(212,160,23,.55)"}}>
-            ADMIN VERIFICATION PANEL · 管理员操作台
-          </div>
-        </div>
-
-        {/* Manual input card */}
-        <div style={{
-          background:"rgba(255,245,235,.04)", border:"1px solid rgba(212,160,23,.14)",
-          borderRadius:14, padding:"20px 22px", marginBottom:24
-        }}>
-          <div style={{fontSize:9,letterSpacing:2.5,color:"rgba(212,160,23,.65)",marginBottom:13,textTransform:"uppercase"}}>
-            Scan QR or Enter Ticket Number
-          </div>
-          <div style={{display:"flex",gap:9,flexWrap:"wrap",alignItems:"center"}}>
-            <input
-              value={adminInput}
-              onChange={e=>setAdminInput(e.target.value)}
-              onKeyDown={e=>e.key==="Enter"&&onVerify()}
-              placeholder="e.g. 1042"
-              style={{
-                flex:1, minWidth:120, padding:"11px 16px",
-                background:"rgba(255,245,235,.06)", border:"1px solid rgba(212,160,23,.2)",
-                borderRadius:9, color:"#FFF5EB", fontSize:18,
-                fontFamily:"'Playfair Display',serif", fontWeight:700,
-              }}
-            />
-            <select value={adminCtr} onChange={e=>setAdminCtr(e.target.value)} style={{
-              padding:"11px 14px", background:"rgba(255,245,235,.06)",
-              border:"1px solid rgba(212,160,23,.2)", borderRadius:9,
-              color:"#FFF5EB", fontSize:12, fontFamily:"'DM Sans',sans-serif",
-              cursor:"pointer"
-            }}>
-              {counters.map(c=><option key={c} value={c} style={{background:"#1C0A10"}}>Counter {c}</option>)}
-            </select>
-            <button onClick={onVerify} style={{
-              padding:"11px 22px",
-              background:"linear-gradient(135deg,#C41E3A,#8B0000)",
-              color:"#FFF5EB", border:"1px solid rgba(212,160,23,.3)",
-              borderRadius:9, fontSize:11, fontWeight:700, letterSpacing:2,
-              cursor:"pointer", textTransform:"uppercase"
-            }}>VERIFY ✓</button>
-          </div>
-        </div>
-
-        {/* Stats row */}
-        <div style={{display:"flex",gap:10,marginBottom:24,flexWrap:"wrap"}}>
-          {[{l:"WAITING",n:waiting.length,c:"#D4A017"},{l:"VERIFIED",n:verified.length,c:"#2AAA8A"},{l:"TOTAL",n:tickets.length,c:"rgba(255,245,235,.4)"}].map(s=>(
-            <div key={s.l} style={{
-              flex:1, minWidth:100,
-              background:"rgba(255,245,235,.03)", border:`1px solid ${s.c}22`,
-              borderRadius:12, padding:"14px 16px", textAlign:"center"
-            }}>
-              <div style={{fontFamily:"'Playfair Display',serif",fontSize:30,fontWeight:900,color:s.c}}>{s.n}</div>
-              <div style={{fontSize:8,letterSpacing:2,color:"rgba(255,245,235,.3)",marginTop:2}}>{s.l}</div>
-            </div>
-          ))}
-        </div>
-
-        {/* Waiting tickets list */}
-        <div style={{fontSize:9,letterSpacing:2.5,color:"rgba(212,160,23,.55)",marginBottom:12,textTransform:"uppercase"}}>
-          WAITING TICKETS ({waiting.length})
-        </div>
-        {waiting.length===0 && (
-          <div style={{
-            textAlign:"center",padding:"40px",fontSize:12,
-            color:"rgba(255,245,235,.18)",letterSpacing:2,
-            border:"1px dashed rgba(212,160,23,.1)", borderRadius:12
-          }}>暂无等待号码 · NO WAITING TICKETS</div>
-        )}
-        <div style={{display:"flex",flexDirection:"column",gap:9,marginBottom:26}}>
-          {waiting.map(t=>(
-            <div key={t.id} style={{
-              display:"flex", alignItems:"center",
-              background:"rgba(255,245,235,.035)",
-              border:"1px solid rgba(212,160,23,.12)",
-              borderRadius:11, padding:"12px 16px", gap:16, flexWrap:"wrap"
-            }}>
-              <div style={{
-                fontFamily:"'Playfair Display',serif", fontSize:30, fontWeight:900,
-                color:"#FFF5EB", minWidth:68
-              }}>{t.number}</div>
-              <div style={{flex:1,minWidth:80}}>
-                <div style={{fontSize:7.5,letterSpacing:2,color:"rgba(212,160,23,.55)"}}>ISSUED · TIME</div>
-                <div style={{fontSize:12,color:"rgba(255,245,235,.65)"}}>{t.time}</div>
-              </div>
-              <div style={{marginRight:8}}>
-                <div style={{fontSize:7.5,letterSpacing:2,color:"rgba(212,160,23,.55)"}}>AUTO COUNTER</div>
-                <div style={{
-                  fontFamily:"'Playfair Display',serif", fontSize:18,
-                  fontWeight:900, color:"#C41E3A"
-                }}>{t.counter}</div>
-              </div>
-              {/* Counter buttons */}
-              <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
-                {counters.map(c=>(
-                  <button key={c} onClick={()=>onVerifyList(t,c)} style={{
-                    padding:"6px 13px",
-                    background: t.counter===c
-                      ? "linear-gradient(135deg,#2AAA8A,#1A7A6A)"
-                      : "rgba(42,170,138,.1)",
-                    color: t.counter===c ? "#FFF5EB" : "rgba(42,170,138,.7)",
-                    border:`1px solid rgba(42,170,138,${t.counter===c?".5":".2"})`,
-                    borderRadius:7, fontSize:10, fontWeight:700, letterSpacing:.8,
-                    cursor:"pointer"
-                  }}>{c} ✓</button>
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Recently verified */}
-        {verified.length > 0 && (<>
-          <div style={{fontSize:9,letterSpacing:2.5,color:"rgba(42,170,138,.55)",marginBottom:12,textTransform:"uppercase"}}>
-            RECENTLY VERIFIED ({verified.length})
-          </div>
-          <div style={{display:"flex",flexDirection:"column",gap:7}}>
-            {verified.slice(0,8).map(t=>(
-              <div key={t.id} style={{
-                display:"flex",alignItems:"center",gap:14,
-                background:"rgba(42,170,138,.05)",
-                border:"1px solid rgba(42,170,138,.12)",
-                borderRadius:9, padding:"10px 16px", opacity:.8
-              }}>
-                <div style={{fontFamily:"'Playfair Display',serif",fontSize:22,fontWeight:900,color:"rgba(42,170,138,.8)",minWidth:55}}>
-                  {t.number}
-                </div>
-                <div style={{flex:1}}>
-                  <div style={{fontSize:9,color:"rgba(255,245,235,.35)"}}>Verified · {t.time}</div>
-                </div>
-                <div style={{
-                  fontFamily:"'Playfair Display',serif",fontSize:16,fontWeight:900,color:"#2AAA8A"
-                }}>→ {t.counter}</div>
-                <div style={{
-                  fontSize:9,fontWeight:700,letterSpacing:1,
-                  color:"#2AAA8A",opacity:.75
-                }}>✓ DONE</div>
-              </div>
-            ))}
-          </div>
-        </>)}
-      </div>
-    </div>
-  );
-}
-
-/* ═══════════════════════════════════════════════════════════════════════════ */
-/*  MODE 3 — VIEWER                                                            */
-/* ═══════════════════════════════════════════════════════════════════════════ */
-function ViewerMode({ tickets }) {
-  const waiting  = tickets.filter(t=>t.status==="waiting");
-  const verified = tickets.filter(t=>t.status==="verified");
-  const trashed  = tickets.filter(t=>t.status==="trashed");
-  const nowServing = verified[0];
-
-  return (
-    <div style={{height:"calc(100vh - 62px)",overflowY:"auto",padding:"24px 22px"}}>
-      <div style={{maxWidth:820, margin:"0 auto"}}>
-
-        {/* Now Serving hero */}
-        {nowServing ? (
-          <div className="goldPulse" style={{
-            background:"linear-gradient(135deg,rgba(196,30,58,.14),rgba(212,160,23,.07))",
-            border:"1px solid rgba(212,160,23,.28)", borderRadius:18,
-            padding:"24px 32px", marginBottom:24, textAlign:"center"
-          }}>
-            <div style={{
-              fontSize:9, letterSpacing:5, color:"rgba(212,160,23,.6)",
-              marginBottom:6, textTransform:"uppercase"
-            }}>NOW SERVING · 现在服务</div>
-            <div style={{
-              fontFamily:"'Playfair Display',serif", fontSize:68, fontWeight:900,
-              color:"#FFF5EB", lineHeight:1
-            }}>{nowServing.number}</div>
-            <div style={{marginTop:8, display:"flex", alignItems:"center", justifyContent:"center", gap:16}}>
-              <div style={{
-                fontFamily:"'Noto Serif SC',serif", fontSize:13,
-                color:"rgba(255,245,235,.55)"
-              }}>请前往柜台</div>
-              <div style={{
-                fontFamily:"'Playfair Display',serif", fontSize:32, fontWeight:900,
-                color:"#D4A017"
-              }}>{nowServing.counter}</div>
-              <div style={{
-                fontFamily:"'Noto Serif SC',serif", fontSize:13,
-                color:"rgba(255,245,235,.55)"
-              }}>Please proceed</div>
-            </div>
-          </div>
-        ) : (
-          <div style={{
-            background:"rgba(255,245,235,.02)", border:"1px dashed rgba(212,160,23,.15)",
-            borderRadius:18, padding:"28px", marginBottom:24, textAlign:"center"
-          }}>
-            <div style={{
-              fontFamily:"'Noto Serif SC',serif",fontSize:13,
-              color:"rgba(255,245,235,.22)",letterSpacing:3
-            }}>等候服务 · WAITING TO SERVE</div>
-          </div>
-        )}
-
-        {/* Stats */}
-        <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12,marginBottom:28}}>
-          {[
-            {icon:"⏳",l:"WAITING · 等待",n:waiting.length,c:"#D4A017",bg:"rgba(212,160,23,.06)"},
-            {icon:"✅",l:"VERIFIED · 已验证",n:verified.length,c:"#2AAA8A",bg:"rgba(42,170,138,.06)"},
-            {icon:"🎫",l:"TOTAL ISSUED",n:tickets.length,c:"rgba(255,245,235,.45)",bg:"rgba(255,245,235,.03)"}
-          ].map(s=>(
-            <div key={s.l} style={{
-              background:s.bg, border:`1px solid ${s.c}22`,
-              borderRadius:14, padding:"18px 12px", textAlign:"center"
-            }}>
-              <div style={{fontSize:26,marginBottom:5}}>{s.icon}</div>
-              <div style={{
-                fontFamily:"'Playfair Display',serif",fontSize:36,
-                fontWeight:900,color:s.c,lineHeight:1
-              }}>{s.n}</div>
-              <div style={{fontSize:7.5,letterSpacing:2,color:"rgba(255,245,235,.3)",marginTop:4}}>
-                {s.l}
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Full queue */}
-        <div style={{fontSize:9,letterSpacing:2.5,color:"rgba(212,160,23,.55)",marginBottom:13,textTransform:"uppercase"}}>
-          FULL QUEUE · 完整队列
-        </div>
-        {tickets.length===0 && (
-          <div style={{
-            textAlign:"center",padding:"55px",fontSize:12,
-            color:"rgba(255,245,235,.16)",letterSpacing:2,
-            border:"1px dashed rgba(212,160,23,.1)",borderRadius:14
-          }}>暂无号码 · NO TICKETS YET</div>
-        )}
-        <div style={{display:"flex",flexDirection:"column",gap:7}}>
-          {tickets.map((t,i)=>{
-            const sc = {waiting:"#D4A017",verified:"#2AAA8A",trashed:"#4A4A4A"}[t.status];
-            const sb = {waiting:"rgba(212,160,23,.07)",verified:"rgba(42,170,138,.07)",trashed:"rgba(0,0,0,.15)"}[t.status];
-            return (
-              <div key={t.id} className="fadeUp" style={{
-                display:"flex", alignItems:"center",
-                background:sb, border:`1px solid ${sc}20`,
-                borderRadius:11, padding:"11px 16px",
-                opacity:t.status==="trashed"?.38:1,
-                transition:"all .3s ease"
-              }}>
-                {/* Position no. */}
-                <div style={{
-                  width:32, textAlign:"right", paddingRight:12,
-                  fontSize:10, color:"rgba(255,245,235,.25)", fontWeight:500, flexShrink:0
-                }}>{String(i+1).padStart(2,"0")}</div>
-
-                {/* Ticket number */}
-                <div style={{
-                  fontFamily:"'Playfair Display',serif", fontSize:28,
-                  fontWeight:900, color:t.status==="trashed"?"#444":"#FFF5EB",
-                  minWidth:84, lineHeight:1
-                }}>{t.number}</div>
-
-                {/* Vertical divider */}
-                <div style={{width:1,height:32,background:"rgba(255,245,235,.06)",margin:"0 14px 0 4px",flexShrink:0}}/>
-
-                {/* Counter */}
-                <div style={{minWidth:68}}>
-                  <div style={{fontSize:7,letterSpacing:2,color:"rgba(255,245,235,.28)"}}>COUNTER</div>
-                  <div style={{
-                    fontFamily:"'Playfair Display',serif",fontSize:20,
-                    fontWeight:900,color:sc,lineHeight:1.1
-                  }}>{t.counter}</div>
-                </div>
-
-                {/* Time */}
-                <div style={{flex:1, paddingLeft:10}}>
-                  <div style={{fontSize:7,letterSpacing:2,color:"rgba(255,245,235,.28)"}}>ISSUED</div>
-                  <div style={{fontSize:12,color:"rgba(255,245,235,.5)"}}>{t.time}</div>
-                </div>
-
-                {/* Status badge */}
-                <div style={{
-                  padding:"5px 13px",
-                  background:`${sc}1A`, border:`1px solid ${sc}44`,
-                  borderRadius:100, fontSize:9, fontWeight:700,
-                  color:sc, letterSpacing:1.2, minWidth:92, textAlign:"center"
-                }}>
-                  {t.status==="waiting"?"⏳ WAITING":t.status==="verified"?"✓ VERIFIED":"✗ DONE"}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-        <div style={{height:40}}/>
-      </div>
-    </div>
-  );
-}
+// ...existing code...
