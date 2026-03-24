@@ -362,24 +362,7 @@
       "description": "WeChat-shared field image from Flushing research documentation stream.",
       "author": "Leo Zheng"
     },
-    {
-      "id": "fp-001",
-      "sectionId": "floorPlan",
-      "title": "Top View Raster Export",
-      "src": "https://picsum.photos/id/1039/400/280",
-      "directory": "public/assets/floor-plan/floor-plan-top-raster-001.png",
-      "description": "Scaled top view print with performer movement blocks.",
-      "author": "Elizabeth Kezia Widjaja"
-    },
-    {
-      "id": "fp-002",
-      "sectionId": "floorPlan",
-      "title": "Seating Overlay v2",
-      "src": "https://picsum.photos/id/1050/400/280",
-      "directory": "public/assets/floor-plan/floor-plan-seating-overlay-v2.png",
-      "description": "Audience sightline zones and obstruction warning heatmap.",
-      "author": "Elizabeth Kezia Widjaja"
-    },
+  
     {
       "id": "sd-001",
       "sectionId": "setDocs",
@@ -416,6 +399,25 @@
       "description": "Warm-cool contrast map for scene sequencing and attention control.",
       "author": "Elizabeth Kezia Widjaja"
     }
+    ,
+    { "id": "ads-001", "sectionId": "creativeDirection", "title": "Ad IMG_7718", "src": "/assets/creative-direction/ads/IMG_7718.JPG", "directory": "public/assets/creative-direction/ads/IMG_7718.JPG", "description": "Ad image asset.", "author": "Unknown" },
+    { "id": "ads-002", "sectionId": "creativeDirection", "title": "Ad IMG_7719", "src": "/assets/creative-direction/ads/IMG_7719.JPG", "directory": "public/assets/creative-direction/ads/IMG_7719.JPG", "description": "Ad image asset.", "author": "Unknown" },
+    { "id": "ads-003", "sectionId": "creativeDirection", "title": "Ad IMG_7721", "src": "/assets/creative-direction/ads/IMG_7721.JPG", "directory": "public/assets/creative-direction/ads/IMG_7721.JPG", "description": "Ad image asset.", "author": "Unknown" },
+    { "id": "ads-004", "sectionId": "creativeDirection", "title": "Ad IMG_7723", "src": "/assets/creative-direction/ads/IMG_7723.JPG", "directory": "public/assets/creative-direction/ads/IMG_7723.JPG", "description": "Ad image asset.", "author": "Unknown" },
+    { "id": "ads-005", "sectionId": "creativeDirection", "title": "Ad IMG_7724", "src": "/assets/creative-direction/ads/IMG_7724.JPG", "directory": "public/assets/creative-direction/ads/IMG_7724.JPG", "description": "Ad image asset.", "author": "Unknown" },
+    { "id": "ads-006", "sectionId": "creativeDirection", "title": "Ad IMG_7726", "src": "/assets/creative-direction/ads/IMG_7726.JPG", "directory": "public/assets/creative-direction/ads/IMG_7726.JPG", "description": "Ad image asset.", "author": "Unknown" },
+    { "id": "ads-007", "sectionId": "creativeDirection", "title": "Ad IMG_7728", "src": "/assets/creative-direction/ads/IMG_7728.JPG", "directory": "public/assets/creative-direction/ads/IMG_7728.JPG", "description": "Ad image asset.", "author": "Unknown" },
+    { "id": "ads-008", "sectionId": "creativeDirection", "title": "Ad IMG_7730(1)", "src": "/assets/creative-direction/ads/IMG_7730(1).JPG", "directory": "public/assets/creative-direction/ads/IMG_7730(1).JPG", "description": "Ad image asset.", "author": "Unknown" },
+    { "id": "ads-009", "sectionId": "creativeDirection", "title": "Ad IMG_7730", "src": "/assets/creative-direction/ads/IMG_7730.JPG", "directory": "public/assets/creative-direction/ads/IMG_7730.JPG", "description": "Ad image asset.", "author": "Unknown" },
+    { "id": "ads-010", "sectionId": "creativeDirection", "title": "Ad IMG_7731", "src": "/assets/creative-direction/ads/IMG_7731.JPG", "directory": "public/assets/creative-direction/ads/IMG_7731.JPG", "description": "Ad image asset.", "author": "Unknown" },
+    { "id": "ads-011", "sectionId": "creativeDirection", "title": "Ad IMG_7732", "src": "/assets/creative-direction/ads/IMG_7732.JPG", "directory": "public/assets/creative-direction/ads/IMG_7732.JPG", "description": "Ad image asset.", "author": "Unknown" },
+    { "id": "ads-012", "sectionId": "creativeDirection", "title": "Ad IMG_7733", "src": "/assets/creative-direction/ads/IMG_7733.JPG", "directory": "public/assets/creative-direction/ads/IMG_7733.JPG", "description": "Ad image asset.", "author": "Unknown" },
+    { "id": "ads-013", "sectionId": "creativeDirection", "title": "Ad IMG_7735", "src": "/assets/creative-direction/ads/IMG_7735.JPG", "directory": "public/assets/creative-direction/ads/IMG_7735.JPG", "description": "Ad image asset.", "author": "Unknown" },
+    { "id": "ads-014", "sectionId": "creativeDirection", "title": "Ad IMG_7736", "src": "/assets/creative-direction/ads/IMG_7736.JPG", "directory": "public/assets/creative-direction/ads/IMG_7736.JPG", "description": "Ad image asset.", "author": "Unknown" },
+    { "id": "ads-015", "sectionId": "creativeDirection", "title": "Ad IMG_7737", "src": "/assets/creative-direction/ads/IMG_7737.JPG", "directory": "public/assets/creative-direction/ads/IMG_7737.JPG", "description": "Ad image asset.", "author": "Unknown" },
+    { "id": "ads-016", "sectionId": "creativeDirection", "title": "Ad IMG_7744", "src": "/assets/creative-direction/ads/IMG_7744.JPG", "directory": "public/assets/creative-direction/ads/IMG_7744.JPG", "description": "Ad image asset.", "author": "Unknown" },
+    { "id": "ads-017", "sectionId": "creativeDirection", "title": "Ad IMG_7745", "src": "/assets/creative-direction/ads/IMG_7745.JPG", "directory": "public/assets/creative-direction/ads/IMG_7745.JPG", "description": "Ad image asset.", "author": "Unknown" },
+    { "id": "ads-018", "sectionId": "creativeDirection", "title": "Ad IMG_7779", "src": "/assets/creative-direction/ads/IMG_7779.JPG", "directory": "public/assets/creative-direction/ads/IMG_7779.JPG", "description": "Ad image asset.", "author": "Unknown" }
   ],
   "videoAssets": [
     {
@@ -436,6 +438,8 @@
       "description": "Ambient pacing sample used in sound rehearsal alignment.",
       "author": "Elizabeth Kezia Widjaja"
     }
+    ,
+    { "id": "ticketing-001", "sectionId": "creativeDirection", "title": "Ticketing Video IMG_7007", "src": "/assets/creative-direction/ticketing/IMG_7007.mov", "directory": "public/assets/creative-direction/ticketing/IMG_7007.mov", "description": "Ticketing video asset.", "author": "Unknown" }
   ],
   "modelAssets": [
     {
@@ -448,6 +452,9 @@
       "description": "GLB-compatible slot. Replace src with your local floor-plan model path.",
       "author": "Kurt & Kezia"
     }
+  ],
+  "scripts": [
+    
   ],
   "iframeAssets": [
     {
@@ -527,20 +534,11 @@
     {
       "id": "scr-001",
       "sectionId": "script",
-      "title": "Script Draft A12",
-      "directory": "docs/script/script-draft-a12.md",
+      "title": "Script Draft 03/22/2026",
+      "directory": "docs/script/script-draft-03-22-2026.pdf",
       "description": "Current narrative baseline with timing anchors and speech rhythm marks.",
       "excerpt": "Scene 04: Performer crosses interior line, repeats phrase in split cadence with projected subtitle stack.",
-      "author": "Elizabeth Kezia Widjaja"
-    },
-    {
-      "id": "scr-002",
-      "sectionId": "script",
-      "title": "Script Diff Notes",
-      "directory": "docs/script/diff-notes-a11-a12.md",
-      "description": "Revision deltas for blocking language and timing compressions.",
-      "excerpt": "Removed long pause in Scene 02; merged dialogue fragments to preserve visual density.",
-      "author": "Elizabeth Kezia Widjaja"
+      "author": "Shihan Tan"
     },
     {
       "id": "cdoc-001",
