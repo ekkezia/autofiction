@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Light Control</title>
+  <script src="https://cdn.socket.io/4.7.0/socket.io.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #000;
+      color: #fff;
+      font-family: 'Courier New', monospace;
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      user-select: none;
+    }
+
+    /* ── Timer ── */
+    #timer {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: clamp(80px, 18vw, 220px);
+      font-weight: 100;
+      letter-spacing: 0.05em;
+      color: #fff;
+      transition: color 0.4s, text-shadow 0.4s;
+      white-space: nowrap;
+    }
+    #timer.running {
+      color: #fff;
+      text-shadow: 0 0 60px rgba(255,255,255,0.15);
+    }
+    #timer.stopped {
+      color: #222;
+      text-shadow: none;
+    }
+
+    /* ── Buttons shared ── */
+    .ctrl-btn {
+      position: fixed;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      cursor: pointer;
+      background: none;
+      border: none;
+      color: inherit;
+      font-family: inherit;
+    }
+
+    .btn-ring {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      border: 2px solid #333;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: border-color 0.3s, box-shadow 0.3s, background 0.3s;
+      font-size: 22px;
+    }
+
+    .btn-label {
+      font-size: 10px;
+      letter-spacing: 0.16em;
+      color: #444;
+      transition: color 0.3s;
+      text-transform: uppercase;
+    }
+
+    /* ── SPOTLIGHT — bottom left ── */
+    #btn-spotlight {
+      bottom: 48px;
+      left: 48px;
+    }
+    #btn-spotlight .btn-ring   { border-color: #333; }
+    #btn-spotlight.on .btn-ring {
+      border-color: #ffe066;
+      box-shadow: 0 0 24px rgba(255,220,80,0.6), 0 0 60px rgba(255,200,40,0.25);
+      background: rgba(255,220,80,0.08);
+    }
+    #btn-spotlight.on .btn-label { color: #ffe066; }
+
+    /* ── PATH LIGHT — bottom right ── */
+    #btn-pathlight {
+      bottom: 48px;
+      right: 48px;
+    }
+    #btn-pathlight .btn-ring   { border-color: #333; }
+    #btn-pathlight.on .btn-ring {
+      border-color: #66aaff;
+      box-shadow: 0 0 24px rgba(80,150,255,0.6), 0 0 60px rgba(60,130,255,0.25);
+      background: rgba(80,150,255,0.08);
+    }
+    #btn-pathlight.on .btn-label { color: #66aaff; }
+
+    /* ── TIMER — bottom center ── */
+    #btn-timer {
+      bottom: 48px;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+    #btn-timer .btn-ring   { border-color: #333; width: 52px; height: 52px; font-size: 18px; }
+    #btn-timer.on .btn-ring {
+      border-color: #66ff99;
+      box-shadow: 0 0 20px rgba(80,255,130,0.5), 0 0 50px rgba(60,220,100,0.2);
+      background: rgba(80,255,130,0.07);
+    }
+    #btn-timer.on .btn-label { color: #66ff99; }
+
+    /* ── Connection dot ── */
+    #conn {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #222;
+      transition: background 0.3s, box-shadow 0.3s;
+    }
+    #conn.on {
+      background: #44ff88;
+      box-shadow: 0 0 8px rgba(60,255,120,0.7);
+    }
+  </style>
+</head>
+<body>
+
+  <div id="timer" class="stopped">00:00</div>
+
+  <!-- SPOTLIGHT -->
+  <button class="ctrl-btn" id="btn-spotlight" onclick="toggle('spotlight')">
+    <div class="btn-ring">☀</div>
+    <span class="btn-label">Spotlight</span>
+  </button>
+
+  <!-- TIMER -->
+  <button class="ctrl-btn" id="btn-timer" onclick="toggle('timer')">
+    <div class="btn-ring">⏱</div>
+    <span class="btn-label">Timer</span>
+  </button>
+
+  <!-- PATH LIGHT -->
+  <button class="ctrl-btn" id="btn-pathlight" onclick="toggle('pathlight')">
+    <div class="btn-ring">◎</div>
+    <span class="btn-label">Path Light</span>
+  </button>
+
+  <div id="conn"></div>
+
+  <script>
+    const socket = io('http://localhost:4003');
+
+    const state = { spotlight: false, pathlight: false, timer: false };
+
+    const timerEl      = document.getElementById('timer');
+    const connEl       = document.getElementById('conn');
+    const spotlightBtn = document.getElementById('btn-spotlight');
+    const pathlightBtn = document.getElementById('btn-pathlight');
+    const timerBtn     = document.getElementById('btn-timer');
+
+    socket.on('connect',    () => connEl.classList.add('on'));
+    socket.on('disconnect', () => connEl.classList.remove('on'));
+
+    socket.on('state', (s) => {
+      state.spotlight = s.spotlight;
+      state.pathlight = s.pathlight;
+      state.timer     = s.timer;
+      updateUI();
+    });
+
+    socket.on('timer_tick', (seconds) => {
+      timerEl.textContent = formatTime(seconds);
+    });
+
+    function toggle(key) {
+      state[key] = !state[key];
+      socket.emit(key, state[key]);
+      updateUI();
+    }
+
+    function updateUI() {
+      spotlightBtn.classList.toggle('on', state.spotlight);
+      pathlightBtn.classList.toggle('on', state.pathlight);
+      timerBtn.classList.toggle('on',     state.timer);
+      timerEl.classList.toggle('running', state.timer);
+      timerEl.classList.toggle('stopped', !state.timer);
+      if (!state.timer) timerEl.textContent = '00:00';
+    }
+
+    function formatTime(s) {
+      const m = Math.floor(s / 60).toString().padStart(2, '0');
+      const sec = (s % 60).toString().padStart(2, '0');
+      return `${m}:${sec}`;
+    }
+  </script>
+</body>
+</html>

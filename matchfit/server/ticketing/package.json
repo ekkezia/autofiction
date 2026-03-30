@@ -1,0 +1,14 @@
+{
+  "name": "matchfit-queue-server",
+  "version": "1.0.0",
+  "description": "Queue/registration server for Match Fit",
+  "main": "queue.js",
+  "scripts": {
+    "start": "node queue.js"
+  },
+  "dependencies": {
+    "dotenv": "^17.3.1",
+    "osc-min": "^2.1.2",
+    "socket.io": "^4.7.0"
+  }
+}

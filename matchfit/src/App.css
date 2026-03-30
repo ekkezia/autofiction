@@ -435,3 +435,159 @@ a { text-decoration: none; color: inherit; cursor: pointer; }
 .popup-table td  { padding: 6px 12px; border: 1px solid #e0e0e0; font-size: 12px; }
 .popup-table tr:nth-child(even) td { background: #fff5f5; }
 .popup-table td:last-child { color: var(--color-hero-red); font-weight: 700; white-space: nowrap; }
+
+/* ─── REGISTER BUTTON (login bar) ───────────────────────────────────────── */
+.register-btn {
+  background: linear-gradient(180deg, #ee1111, #990000);
+  border: 1px solid #660000;
+  color: #fff; font-size: 11px; font-weight: 900;
+  padding: 1px 12px; height: 22px; cursor: pointer;
+  letter-spacing: 0.06em; margin-left: 8px;
+}
+.register-btn:hover { background: linear-gradient(180deg, #ff3333, #bb0000); }
+
+/* ─── REGISTER OVERLAY ──────────────────────────────────────────────────── */
+.register-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,50,0.88);
+  z-index: 1100;
+  display: flex; align-items: center; justify-content: center;
+}
+.register-modal {
+  background: #fff;
+  border: 2px solid var(--color-hero-red);
+  width: min(520px, 94vw);
+  box-shadow: 0 8px 40px rgba(0,0,0,0.55);
+}
+.register-modal-bar {
+  background: linear-gradient(90deg, var(--color-portal-dark), #0044cc);
+  color: #fff; display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 12px; flex-shrink: 0;
+}
+.register-modal-title { font-size: 12px; font-weight: 700; letter-spacing: 0.04em; }
+
+.register-form { display: flex; flex-direction: column; align-items: center; padding: 40px 36px; gap: 20px; }
+.register-label { font-size: 14px; font-weight: 700; color: var(--color-portal-dark); letter-spacing: 0.04em; text-align: center; }
+.register-input {
+  width: 100%; font-size: 2rem; font-weight: 900; text-align: center;
+  border: none; border-bottom: 3px solid var(--color-portal-dark);
+  padding: 8px 0; outline: none; color: var(--color-text-ink);
+  background: transparent;
+}
+.register-input:focus { border-bottom-color: var(--color-hero-red); }
+.register-submit {
+  background: linear-gradient(180deg, var(--color-portal-dark), #001a6e);
+  color: #fff; font-size: 14px; font-weight: 900; letter-spacing: 0.06em;
+  border: none; padding: 10px 36px; cursor: pointer;
+  border: 2px solid #0a1e50;
+}
+.register-submit:disabled { opacity: 0.4; cursor: default; }
+.register-submit:not(:disabled):hover { background: linear-gradient(180deg, #2255aa, #003399); }
+
+.register-done { display: flex; flex-direction: column; align-items: center; padding: 36px; gap: 10px; }
+.register-done-code { font-size: 3.5rem; font-weight: 900; color: var(--color-hero-red); letter-spacing: 0.1em; }
+.register-done-name { font-size: 1.4rem; font-weight: 700; color: var(--color-portal-dark); }
+.register-done-sub  { font-size: 12px; color: #666; }
+.register-done-meta { display: flex; gap: 20px; font-size: 12px; color: #444; }
+.register-done-btn {
+  margin-top: 10px;
+  background: linear-gradient(180deg, var(--color-accent-gold-light), var(--color-accent-gold));
+  border: 2px solid var(--color-accent-gold-dark); color: var(--color-portal-dark);
+  font-size: 13px; font-weight: 900; padding: 8px 28px; cursor: pointer; letter-spacing: 0.04em;
+}
+.register-done-btn:hover { background: linear-gradient(180deg, #fff066, #ffdd22); }
+.register-done-actions { display: flex; flex-direction: column; align-items: center; gap: 6px; margin-top: 4px; }
+.register-next-btn {
+  background: #fff; border: 2px solid var(--color-portal-dark);
+  color: var(--color-portal-dark); font-size: 12px; font-weight: 700;
+  padding: 6px 20px; cursor: pointer; letter-spacing: 0.04em;
+}
+.register-next-btn:hover { background: #eef3ff; }
+.register-countdown { font-size: 10px; color: #aaa; }
+
+/* ─── QUEUE BOARD ───────────────────────────────────────────────────────── */
+.queue-board { background: #fff; display: flex; flex-direction: column; }
+
+.queue-now-serving {
+  background: linear-gradient(135deg, var(--color-portal-dark) 0%, #003399 60%, #0044cc 100%);
+  color: #fff; padding: 20px; text-align: center; border-bottom: 4px solid var(--color-accent-gold);
+}
+.queue-now-label { font-size: 11px; font-weight: 700; letter-spacing: 0.12em; color: var(--color-accent-gold); margin-bottom: 8px; }
+.queue-now-code  { font-size: 3.8rem; font-weight: 900; letter-spacing: 0.08em; color: var(--color-accent-gold); line-height: 1; text-shadow: 2px 2px 0 rgba(0,0,0,0.3); }
+.queue-now-name  { font-size: 1.2rem; font-weight: 700; margin-top: 6px; }
+.queue-now-counter { font-size: 12px; color: #aaccff; margin-top: 4px; }
+.queue-now-empty { font-size: 1.2rem; color: rgba(255,255,255,0.35); padding: 10px 0; }
+
+.queue-columns { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 2px; background: var(--color-border-gold); padding: 2px; flex: 1; }
+
+.queue-col { background: #fff; display: flex; flex-direction: column; }
+.queue-col-header {
+  padding: 8px 10px; font-size: 11px; font-weight: 900; letter-spacing: 0.06em;
+  display: flex; justify-content: space-between; align-items: center;
+}
+.queue-col--waiting  .queue-col-header { background: linear-gradient(180deg, #eef3ff, #dde8ff); color: var(--color-portal-dark); border-bottom: 2px solid var(--color-portal-dark); }
+.queue-col--calling  .queue-col-header { background: linear-gradient(180deg, #ffee88, var(--color-accent-gold)); color: #660000; border-bottom: 2px solid var(--color-hero-red); }
+.queue-col--admitted .queue-col-header { background: linear-gradient(180deg, #e8ffe8, #cceecc); color: #004400; border-bottom: 2px solid #228822; }
+
+.queue-col-count { background: rgba(0,0,0,0.12); border-radius: 10px; padding: 1px 7px; font-size: 10px; }
+.queue-col-body  { flex: 1; overflow-y: auto; max-height: 340px; }
+.queue-col-empty { padding: 16px; text-align: center; color: #bbb; font-size: 12px; }
+
+.queue-ticket-row {
+  display: flex; align-items: center; gap: 8px;
+  padding: 7px 10px; border-bottom: 1px solid #eee;
+}
+.queue-ticket-row:hover { background: #fffff8; }
+.queue-ticket-code { font-size: 13px; font-weight: 900; color: var(--color-hero-red); white-space: nowrap; min-width: 70px; }
+.queue-ticket-name { flex: 1; font-size: 12px; color: var(--color-portal-dark); font-weight: 600; }
+.queue-ticket-time { font-size: 10px; color: #888; white-space: nowrap; }
+
+/* ─── ADMIN BADGE (login bar) ───────────────────────────────────────────── */
+.admin-badge {
+  background: var(--color-hero-red);
+  color: #fff; font-size: 10px; font-weight: 900;
+  padding: 1px 7px; letter-spacing: 0.08em;
+  border: 1px solid #770000;
+}
+
+/* ─── ADMIN ACTION BAR (queue board) ────────────────────────────────────── */
+.queue-admin-bar {
+  background: linear-gradient(90deg, #1a0a00, #2a1400);
+  border-bottom: 2px solid var(--color-accent-gold);
+  display: flex; align-items: center; gap: 10px; padding: 6px 12px;
+}
+.queue-conn-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: #555; flex-shrink: 0; display: inline-block;
+}
+.queue-conn-dot--on { background: #44dd44; box-shadow: 0 0 6px #44dd44; }
+
+.queue-error-bar {
+  background: var(--color-hero-red); color: #fff;
+  font-size: 11px; font-weight: 700; padding: 5px 12px; text-align: center;
+}
+
+.queue-admin-label {
+  font-size: 10px; font-weight: 900; letter-spacing: 0.14em;
+  color: var(--color-accent-gold); border: 1px solid #996600;
+  padding: 1px 7px; margin-right: 4px;
+}
+.queue-admin-btn {
+  font-size: 12px; font-weight: 900; letter-spacing: 0.06em;
+  padding: 5px 20px; cursor: pointer; border: none;
+  transition: opacity 120ms;
+}
+.queue-admin-btn:disabled { opacity: 0.3; cursor: default; }
+.queue-admin-btn--call  {
+  background: linear-gradient(180deg, #4d99ee, var(--color-portal-dark));
+  color: #fff; border: 1px solid #0944aa;
+}
+.queue-admin-btn--call:not(:disabled):hover  { background: linear-gradient(180deg, #66aaff, #2255bb); }
+.queue-admin-btn--admit {
+  background: linear-gradient(180deg, #44bb44, #228822);
+  color: #fff; border: 1px solid #116611;
+}
+.queue-admin-btn--admit:not(:disabled):hover { background: linear-gradient(180deg, #55cc55, #339933); }
+
+/* REGISTRATION nav item accent */
+.nav-item--queue { color: var(--color-hero-red) !important; font-weight: 900 !important; border-left: 2px solid var(--color-accent-gold) !important; }

@@ -1,0 +1,12 @@
+{
+  "name": "light-control-server",
+  "version": "1.0.0",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "osc-min": "^2.1.2",
+    "socket.io": "^4.7.0"
+  }
+}

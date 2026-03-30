@@ -1,4 +1,5 @@
-import { useState, Suspense } from 'react';
+import { useState, useEffect, useRef, Suspense } from 'react';
+import { io } from 'socket.io-client';
 import archiveData from '../archive-assets.json';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, useGLTF, Environment, Center } from '@react-three/drei';
@@ -8,7 +9,8 @@ import 'react-pdf/dist/Page/TextLayer.css';
 
 pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
-const SUPABASE = import.meta.env.VITE_SUPABASE_STORAGE;
+const SUPABASE     = import.meta.env.VITE_SUPABASE_STORAGE;
+const QUEUE_SERVER = import.meta.env.VITE_QUEUE_SERVER || 'http://localhost:4002';
 
 // Convert local asset path → Supabase storage URL; pass external URLs through unchanged
 function storageUrl(src) {
@@ -178,17 +180,228 @@ const MALE_PROFILES = [
   { img: 57, nameZh: 'Andy', ageZh: '26岁', cityZh: '纽约市', nameEn: 'Andy', ageEn: '26', cityEn: 'New York', desc: 'Outgoing and easy-going with great humor. Loves sports and music. Easy to get along with...' },
 ];
 
+// ─── useQueue hook ─────────────────────────────────────────────────────────────
+function useQueue() {
+  const [queue, setQueue]      = useState([]);
+  const [connected, setConn]   = useState(false);
+  const [queueError, setError] = useState(null);
+  const socketRef              = useRef(null);
+
+  useEffect(() => {
+    const s = io(QUEUE_SERVER, { transports: ['websocket', 'polling'] });
+    socketRef.current = s;
+    s.on('connect',       () => { setConn(true);  console.log('[queue] connected', s.id); });
+    s.on('disconnect',    () => { setConn(false); console.log('[queue] disconnected'); });
+    s.on('connect_error', (e) => { setConn(false); console.error('[queue] connect error:', e.message); });
+    s.on('queue_snapshot', setQueue);
+    s.on('call_error',  ({ reason }) => { setError(reason); setTimeout(() => setError(null), 3000); });
+    s.on('admit_error', ({ reason }) => { setError(reason); setTimeout(() => setError(null), 3000); });
+    return () => s.disconnect();
+  }, []);
+
+  const register = (name) => new Promise((resolve) => {
+    socketRef.current?.emit('register_user', { name });
+    socketRef.current?.once('register_ack', resolve);
+  });
+
+  const callNext = () => {
+    console.log('[queue] callNext — connected:', socketRef.current?.connected, 'id:', socketRef.current?.id);
+    socketRef.current?.emit('call_next');
+  };
+
+  const admitCurrent = () => {
+    console.log('[queue] admitCurrent — connected:', socketRef.current?.connected);
+    socketRef.current?.emit('admit_current');
+  };
+
+  return { queue, connected, queueError, register, callNext, admitCurrent };
+}
+
+// ─── RegisterPage ──────────────────────────────────────────────────────────────
+const NEXT_TIMEOUT = 12; // seconds before auto-reset to new registration
+
+function RegisterPage({ onClose, onRegistered }) {
+  const [name, setName]       = useState('');
+  const [done, setDone]       = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [countdown, setCountdown] = useState(NEXT_TIMEOUT);
+  const { register }          = useQueue();
+
+  // Auto-countdown after successful registration
+  useEffect(() => {
+    if (!done) return;
+    setCountdown(NEXT_TIMEOUT);
+    const id = setInterval(() => {
+      setCountdown(n => {
+        if (n <= 1) { clearInterval(id); resetForm(); return 0; }
+        return n - 1;
+      });
+    }, 1000);
+    return () => clearInterval(id);
+  }, [done]);
+
+  function resetForm() { setDone(null); setName(''); setLoading(false); }
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    if (!name.trim() || loading) return;
+    setLoading(true);
+    const ticket = await register(name.trim());
+    setDone(ticket);
+    setLoading(false);
+  }
+
+  return (
+    <div className="register-overlay" onClick={onClose}>
+      <div className="register-modal" onClick={e => e.stopPropagation()}>
+        <div className="register-modal-bar">
+          <span className="register-modal-title">MATCH FIT · 排队登记 / Queue Registration</span>
+          <button className="pdf-close-btn" onClick={onClose}>✕</button>
+        </div>
+        {done ? (
+          <div className="register-done">
+            <div className="register-done-code">{done.code}</div>
+            <div className="register-done-name">{done.name}</div>
+            <div className="register-done-sub">请等候叫号 · Please wait to be called</div>
+            <div className="register-done-meta">
+              <span>Counter: <strong>{done.counter}</strong></span>
+              <span>Time: <strong>{new Date(done.timestamp).toLocaleTimeString()}</strong></span>
+            </div>
+            {/* <button className="register-done-btn" onClick={() => { onRegistered(); onClose(); }}>
+              查看排队 / View Queue →
+            </button> */}
+            <div className="register-done-actions">
+              <button className="register-next-btn" onClick={resetForm}>
+                + 再登记一人 / Register Another
+              </button>
+              <span className="register-countdown">
+                自动重置 {countdown}s…
+              </span>
+            </div>
+          </div>
+        ) : (
+          <form className="register-form" onSubmit={handleSubmit}>
+            <label className="register-label">请输入您的姓名 / Enter your name</label>
+            <input
+              className="register-input"
+              type="text"
+              autoFocus
+              placeholder="Your name…"
+              maxLength={11}
+              value={name}
+              onChange={e => setName(e.target.value)}
+              disabled={loading}
+            />
+            <button className="register-submit" type="submit" disabled={loading || !name.trim()}>
+              {loading ? '处理中…' : '登记取号 / Get Ticket →'}
+            </button>
+          </form>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── QueueBoard ────────────────────────────────────────────────────────────────
+function QueueBoard({ queue, isAdmin, callNext, admitCurrent, connected, queueError }) {
+  const calling  = queue.filter(t => t.status === 'calling');
+  const waiting  = queue.filter(t => t.status === 'waiting');
+  const admitted = queue.filter(t => t.status === 'admitted');
+  const current  = calling[0] || null;
+
+  return (
+    <div className="queue-board">
+      {/* Admin controls */}
+      {isAdmin && (
+        <div className="queue-admin-bar">
+          <span className="queue-admin-label">ADMIN</span>
+          <span className={`queue-conn-dot${connected ? ' queue-conn-dot--on' : ''}`} title={connected ? 'Server connected' : 'Server disconnected'} />
+          <button
+            className="queue-admin-btn queue-admin-btn--call"
+            onClick={callNext}
+            disabled={!connected || !!current || waiting.length === 0}
+          >
+            📣 CALL NEXT
+          </button>
+          <button
+            className="queue-admin-btn queue-admin-btn--admit"
+            onClick={admitCurrent}
+            disabled={!connected || !current}
+          >
+            ✓ ADMIT
+          </button>
+        </div>
+      )}
+
+      {queueError && <div className="queue-error-bar">{queueError}</div>}
+
+      {/* Now Serving */}
+      <div className="queue-now-serving">
+        <div className="queue-now-label">NOW SERVING · 正在叫号</div>
+        {current ? (
+          <>
+            <div className="queue-now-code">{current.code}</div>
+            <div className="queue-now-name">{current.name}</div>
+            <div className="queue-now-counter">Counter {current.counter}</div>
+          </>
+        ) : (
+          <div className="queue-now-empty">— 暂无 —</div>
+        )}
+      </div>
+
+      {/* Three columns */}
+      <div className="queue-columns">
+        <QueueCol title="等候中 Waiting" tickets={waiting}  accent="waiting"  />
+        <QueueCol title="叫号中 Calling"  tickets={calling}  accent="calling"  />
+        <QueueCol title="已入场 Admitted" tickets={admitted} accent="admitted" />
+      </div>
+    </div>
+  );
+}
+
+function QueueCol({ title, tickets, accent }) {
+  return (
+    <div className={`queue-col queue-col--${accent}`}>
+      <div className="queue-col-header">
+        {title} <span className="queue-col-count">{tickets.length}</span>
+      </div>
+      <div className="queue-col-body">
+        {tickets.length === 0
+          ? <div className="queue-col-empty">—</div>
+          : tickets.map(t => (
+            <div key={t.code} className="queue-ticket-row">
+              <div className="queue-ticket-code">{t.code}</div>
+              <div className="queue-ticket-name">{t.name}</div>
+              <div className="queue-ticket-time">{new Date(t.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+            </div>
+          ))
+        }
+      </div>
+    </div>
+  );
+}
+
 // ─── LoginBar ─────────────────────────────────────────────────────────────────
-function LoginBar({ t, onToggleLang }) {
+function LoginBar({ t, onToggleLang, onRegister, onLogin, isAdmin }) {
+  const [user, setUser] = useState('');
+  const [pass, setPass] = useState('');
+
+  function handleLogin(e) {
+    e.preventDefault();
+    onLogin(user, pass);
+  }
+
   return (
     <div className="login-bar">
       <div className="login-left">
         <span>{t.username}</span>
-        <input type="text" className="login-input" readOnly />
+        <input type="text"     className="login-input" value={user} onChange={e => setUser(e.target.value)} />
         <span>{t.password}</span>
-        <input type="password" className="login-input" readOnly />
-        <button className="login-btn">{t.login}</button>
+        <input type="password" className="login-input" value={pass} onChange={e => setPass(e.target.value)} />
+        <button className="login-btn" onClick={handleLogin}>{t.login}</button>
+        {isAdmin && <span className="admin-badge">ADMIN</span>}
         <span className="login-link">{t.forgot}</span>
+        <button className="register-btn" onClick={onRegister}>REGISTER / 登记</button>
       </div>
       <div className="login-right">
         <span>{t.cardLabel}</span>
@@ -222,6 +435,8 @@ function SiteHeader({ t }) {
 }
 
 // ─── SiteNav ──────────────────────────────────────────────────────────────────
+const NAV_QUEUE = 'queue';
+
 function SiteNav({ t, activeNav, onNavClick }) {
   return (
     <nav className="site-nav">
@@ -234,6 +449,11 @@ function SiteNav({ t, activeNav, onNavClick }) {
           onClick={e => { e.preventDefault(); onNavClick(i); }}
         >{item}</a>
       ))}
+      <a
+        className={`nav-item nav-item--queue${activeNav === NAV_QUEUE ? ' active' : ''}`}
+        href="#"
+        onClick={e => { e.preventDefault(); onNavClick(NAV_QUEUE); }}
+      >REGISTRATION</a>
     </nav>
   );
 }
@@ -613,17 +833,35 @@ function Popup({ t, onClose }) {
 }
 
 // ─── App ──────────────────────────────────────────────────────────────────────
+const ADMIN_USER = 'admin';
+const ADMIN_PASS = 'admin';
+
 export default function App() {
-  const [lang, setLang]           = useState('zh');
-  const [showPopup, setShowPopup] = useState(true);
-  const [activeNav, setActiveNav] = useState(0);
+  const [lang, setLang]             = useState('zh');
+  const [showPopup, setShowPopup]   = useState(true);
+  const [activeNav, setActiveNav]   = useState(0);
+  const [showRegister, setShowReg]  = useState(false);
+  const [isAdmin, setIsAdmin]       = useState(false);
+  const { queue, connected, queueError, callNext, admitCurrent } = useQueue();
   const t = T[lang];
   const toggleLang = () => setLang(l => (l === 'zh' ? 'en' : 'zh'));
-  const isAbout = activeNav === t.navItems.length - 1;
+
+  const isAbout        = activeNav === t.navItems.length - 1;
+  const isRegistration = activeNav === NAV_QUEUE;
+
+  function handleLogin(user, pass) {
+    if (user === ADMIN_USER && pass === ADMIN_PASS) setIsAdmin(true);
+  }
+
+  function centerContent() {
+    if (isRegistration) return <QueueBoard queue={queue} isAdmin={isAdmin} callNext={callNext} admitCurrent={admitCurrent} connected={connected} queueError={queueError} />;
+    if (isAbout)        return <ArchiveContent t={t} />;
+    return <StoriesContent t={t} />;
+  }
 
   return (
     <div className="site">
-      <LoginBar t={t} onToggleLang={toggleLang} />
+      <LoginBar t={t} onToggleLang={toggleLang} onRegister={() => setShowReg(true)} onLogin={handleLogin} isAdmin={isAdmin} />
       <SiteHeader t={t} />
       <SiteNav t={t} activeNav={activeNav} onNavClick={setActiveNav} />
       <HeroBanner t={t} />
@@ -631,12 +869,18 @@ export default function App() {
         <BurgerAd t={t} />
         <MemberCol title={t.femaleCol} profiles={FEMALE_PROFILES} lang={lang} />
         <VertCol text={t.vertLeft} />
-        {isAbout ? <ArchiveContent t={t} /> : <StoriesContent t={t} />}
+        {centerContent()}
         <VertCol text={t.vertRight} />
         <MemberCol title={t.maleCol} profiles={MALE_PROFILES} lang={lang} />
         <BurgerAd t={t} />
       </div>
       {showPopup && <Popup t={t} onClose={() => setShowPopup(false)} />}
+      {showRegister && (
+        <RegisterPage
+          onClose={() => setShowReg(false)}
+          onRegistered={() => setActiveNav(NAV_QUEUE)}
+        />
+      )}
     </div>
   );
 }
