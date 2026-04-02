@@ -4,20 +4,17 @@
 const http  = require('http');
 const fs    = require('fs');
 const path  = require('path');
-const dgram = require('dgram');
-const osc   = require('osc-min');
+const { Client, Message } = require('node-osc');
 const { Server } = require('socket.io');
 
 const HTTP_PORT   = 4003;
 const TD_IP       = '127.0.0.1';
 const TD_OSC_PORT = 9001;
 
-const udp = dgram.createSocket('udp4');
+const osc = new Client(TD_IP, TD_OSC_PORT);
 
 function sendOSC(address, value) {
-  const type = typeof value === 'number' ? 'integer' : 'string';
-  const buf  = osc.toBuffer({ address, args: [{ type, value }] });
-  udp.send(buf, TD_OSC_PORT, TD_IP, (err) => {
+  osc.send(new Message(address, value), (err) => {
     if (err) console.error('OSC error:', err.message);
     else     console.log(`OSC → ${address} = ${value}`);
   });
@@ -40,15 +37,26 @@ const httpServer = http.createServer((req, res) => {
 const io = new Server(httpServer, { cors: { origin: '*' } });
 
 let state = { spotlight: false, pathlight: false, timer: false };
+
 let timerInterval = null;
 let seconds = 0;
+const TIMER_START_SECONDS = 60;
 
-function startTimer(socket) {
+
+function startTimer() {
   if (timerInterval) return;
+  seconds = TIMER_START_SECONDS;
+  io.emit('timer_tick', seconds);
+  sendOSC('/light/timer', seconds);
   timerInterval = setInterval(() => {
-    seconds++;
+    seconds--;
     io.emit('timer_tick', seconds);
     sendOSC('/light/timer', seconds);
+    if (seconds <= 0) {
+      stopTimer();
+      state.timer = false;
+      io.emit('state', { ...state, seconds });
+    }
   }, 1000);
 }
 
@@ -56,6 +64,7 @@ function stopTimer() {
   clearInterval(timerInterval);
   timerInterval = null;
 }
+
 
 function resetTimer() {
   stopTimer();

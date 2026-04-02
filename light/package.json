@@ -6,7 +6,7 @@
     "start": "node server.js"
   },
   "dependencies": {
-    "osc-min": "^2.1.2",
+    "node-osc": "^11.3.0",
     "socket.io": "^4.7.0"
   }
 }
