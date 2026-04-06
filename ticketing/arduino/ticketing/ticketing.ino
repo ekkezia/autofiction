@@ -2,12 +2,12 @@
 #include "arduino_secrets.h"
 #include <Adafruit_Thermal.h>
 
-const char *ssid       = SECRET_SSID;
-const char *password   = SECRET_PASS;
-const char *server_ip  = SERVER_IP_ADDRESS;
-const int   server_port = 4000;
+const char *ssid = SECRET_SSID;
+const char *password = SECRET_PASS;
+const char *server_ip = SERVER_IP_ADDRESS;
+const int server_port = 4000;
 
-WiFiClient      client;
+WiFiClient client;
 Adafruit_Thermal printer(&Serial1);
 
 // ── Read one line from TCP (blocking until \n or timeout) ──────────────────
@@ -93,13 +93,13 @@ void loop() {
 
   // Wait for a complete ticket (blank line = end of message)
   if (client.available()) {
-    String code    = readLine();
+    String code = readLine();
     String counter = readLine();
     String barcode = readLine();
-    String time    = readLine();
-    readLine(); // consume blank terminator
+    String time = readLine();
+    readLine();  // consume blank terminator
 
-    if (code.length() == 0) return; // empty / stale data
+    if (code.length() == 0) return;  // empty / stale data
 
     Serial.println("Printing: " + code + " / " + counter);
     printTicket(code, counter, barcode, time);
