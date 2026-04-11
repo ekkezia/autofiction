@@ -409,12 +409,25 @@ export default function BarcodeScanner() {
       const ctx = new (window.AudioContext || window.webkitAudioContext)();
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
+      const distortion = ctx.createWaveShaper();
+      
+      // Create distortion curve for saturation
+      const samples = 44100;
+      const curve = new Float32Array(samples);
+      for (let i = 0; i < samples; i++) {
+        const x = (i * 2) / samples - 1;
+        curve[i] = ((3 + 4) * x * 20) / (Math.PI + 4 * Math.abs(x));
+      }
+      distortion.curve = curve;
+      distortion.oversample = "4x";
+      
       osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.type = "sine";
+      gain.connect(distortion);
+      distortion.connect(ctx.destination);
+      osc.type = "square";
       osc.frequency.setValueAtTime(1480, ctx.currentTime);
       osc.frequency.exponentialRampToValueAtTime(920, ctx.currentTime + 0.08);
-      gain.gain.setValueAtTime(0.35, ctx.currentTime);
+      gain.gain.setValueAtTime(0.5, ctx.currentTime);
       gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.18);
       osc.start(ctx.currentTime);
       osc.stop(ctx.currentTime + 0.18);

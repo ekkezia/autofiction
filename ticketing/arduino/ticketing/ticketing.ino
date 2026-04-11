@@ -1,6 +1,7 @@
-#include <WiFi.h>
+// Printer MOTOULAX EM5822H
+#include <WiFiNINA.h>
 #include "arduino_secrets.h"
-#include <Adafruit_Thermal.h>
+#include "Adafruit_Thermal.h"
 
 const char *ssid = SECRET_SSID;
 const char *password = SECRET_PASS;
@@ -10,32 +11,61 @@ const int server_port = 4000;
 WiFiClient client;
 Adafruit_Thermal printer(&Serial1);
 
-// ── Read one line from TCP (blocking until \n or timeout) ──────────────────
-String readLine() {
+struct TicketData {
+  String number;
+  String counter;
+  String barcode;
+  String time;
+  String name;
+  bool valid;
+};
+
+String readTCPLine() {
   String line = "";
-  unsigned long start = millis();
-  while (millis() - start < 2000) {
+  unsigned long timeout = millis();
+
+  while (millis() - timeout < 2000) {
     while (client.available()) {
       char c = client.read();
       if (c == '\n') return line;
       if (c != '\r') line += c;
+      timeout = millis();
     }
-    delay(1);
   }
   return line;
 }
 
-// ── Print ticket with pre-parsed fields ────────────────────────────────────
-void printTicket(const String &code, const String &counter,
-                 const String &barcode, const String &time) {
+void rawPrinterInit() {
+  // Reset printer
+  uint8_t initCmd[] = {0x1B, 0x40};   // ESC @ // change printer setting to English
+  Serial1.write(initCmd, sizeof(initCmd));
+  delay(100);
+
+  // Try selecting code page 0
+  uint8_t cpCmd[] = {0x1B, 0x74, 0x00}; // ESC t 0
+  Serial1.write(cpCmd, sizeof(cpCmd));
+  delay(50);
+
+  // Some printers support FS . to exit Chinese character mode
+  uint8_t exitChinese[] = {0x1C, 0x2E}; // FS .
+  Serial1.write(exitChinese, sizeof(exitChinese));
+  delay(50);
+}
+
+void printTicket(const TicketData &ticket) {
+  rawPrinterInit();
+
   printer.wake();
   printer.setDefault();
+  delay(50);
+
   printer.justify('C');
   printer.boldOn();
   printer.setSize('L');
   printer.println(F("YOUR LOVE"));
   printer.println(F("IS WAITING"));
   printer.boldOff();
+
   printer.setSize('S');
   printer.println(F("----------------"));
   printer.println(F("MATCHFIT INC."));
@@ -44,64 +74,95 @@ void printTicket(const String &code, const String &counter,
 
   printer.justify('L');
   printer.setSize('M');
-  printer.println("Ticket No: " + code);
-  printer.println("Counter  : " + counter);
-  printer.println("Time     : " + time);
+  printer.println("Ticket No: " + ticket.number);
+  printer.println("Customer: " + ticket.name);
+  printer.println("Counter  : " + ticket.counter);
+  printer.println("Time     : " + ticket.time);
   printer.feed(1);
 
   printer.justify('C');
-  if (barcode.length() > 0) {
+  printer.setSize('S');
+
+  if (ticket.barcode.length() > 0) {
     printer.setBarcodeHeight(80);
-    printer.printBarcode(barcode.c_str(), CODE128);
-    printer.println(barcode);
+    printer.printBarcode(ticket.barcode.c_str(), CODE128);
+    printer.println(ticket.barcode);
   }
 
   printer.feed(3);
   printer.sleep();
 }
 
-// ── WiFi setup ─────────────────────────────────────────────────────────────
 void setup_wifi() {
   Serial.print("Connecting to WiFi");
-  WiFi.begin(ssid, password);
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(500);
+  while (WiFi.begin(ssid, password) != WL_CONNECTED) {
     Serial.print(".");
+    delay(1000);
   }
-  Serial.println("\nWiFi connected: " + WiFi.localIP().toString());
+  Serial.println();
+  Serial.print("WiFi connected. IP: ");
+  Serial.println(WiFi.localIP());
 }
 
 void setup() {
   Serial.begin(115200);
-  Serial1.begin(9600);
-  setup_wifi();
+  while (!Serial) {}
+
+  Serial.println("Booting...");
+
+  // Printer UART
+  Serial1.begin(115200);
+  delay(500);
+
+  rawPrinterInit();
+
+  // Library init
   printer.begin();
+  delay(100);
+
+  // Very simple test
+  printer.println(F("BOOT TEST"));
+  printer.feed(2);
+
+  setup_wifi();
 }
 
 void loop() {
-  // Reconnect if dropped
   if (!client.connected()) {
-    Serial.print("Connecting to server...");
+    Serial.println("Connecting to queue server...");
     if (client.connect(server_ip, server_port)) {
-      Serial.println("connected");
+      Serial.println("Connected to Queue Server");
     } else {
-      Serial.println("failed, retrying in 5s");
+      Serial.println("Queue server connect failed");
       delay(5000);
       return;
     }
   }
 
-  // Wait for a complete ticket (blank line = end of message)
   if (client.available()) {
-    String code = readLine();
-    String counter = readLine();
-    String barcode = readLine();
-    String time = readLine();
-    readLine();  // consume blank terminator
+    TicketData newTicket;
+    newTicket.valid = false;
 
-    if (code.length() == 0) return;  // empty / stale data
+    newTicket.number = readTCPLine();
+    newTicket.counter = readTCPLine();
+    newTicket.barcode = readTCPLine();
+    newTicket.time = readTCPLine();
+    newTicket.name = readTCPLine();
+    readTCPLine();
 
-    Serial.println("Printing: " + code + " / " + counter);
-    printTicket(code, counter, barcode, time);
+    newTicket.number.trim();
+    newTicket.counter.trim();
+    newTicket.barcode.trim();
+    newTicket.time.trim();
+
+    if (newTicket.number.length() > 0) {
+      newTicket.valid = true;
+      Serial.print("New Ticket Received: ");
+      Serial.println(newTicket.number);
+
+      printTicket(newTicket);
+    } else {
+      Serial.println("Received empty/invalid ticket");
+    }
   }
 }
