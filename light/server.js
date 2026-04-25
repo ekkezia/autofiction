@@ -20,7 +20,7 @@ function sendOSC(address, value) {
   });
 }
 
-// ── HTTP — serve index.html ─────────────────────────────────────────────────
+// ── HTTP — serve index.html + config.js ─────────────────────────────────────
 
 const httpServer = http.createServer((req, res) => {
   if (req.url === '/' || req.url === '/index.html') {
@@ -29,14 +29,27 @@ const httpServer = http.createServer((req, res) => {
       res.writeHead(200, { 'Content-Type': 'text/html' });
       res.end(data);
     });
+    return;
   }
+
+  if (req.url === '/config.js') {
+    fs.readFile(path.join(__dirname, 'config.js'), (err, data) => {
+      if (err) { res.writeHead(500); res.end('Error'); return; }
+      res.writeHead(200, { 'Content-Type': 'application/javascript; charset=utf-8' });
+      res.end(data);
+    });
+    return;
+  }
+
+  res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
+  res.end('Not found');
 });
 
 // ── Socket.IO ───────────────────────────────────────────────────────────────
 
 const io = new Server(httpServer, { cors: { origin: '*' } });
 
-let state = { spotlight: false, pathlight: false, timer: false };
+let state = { spotlight: false, pathlight: false, timer: false, panic: false };
 
 let timerInterval = null;
 let seconds = 0;
@@ -55,6 +68,7 @@ function startTimer() {
     if (seconds <= 0) {
       stopTimer();
       state.timer = false;
+      io.emit('timer_complete');
       io.emit('state', { ...state, seconds });
     }
   }, 1000);
@@ -97,6 +111,26 @@ io.on('connection', (socket) => {
     } else {
       resetTimer();
     }
+  });
+
+  socket.on('service_feedback', (payload) => {
+    const rating = Number(payload?.rating || 0);
+    const tip = String(payload?.tip || 'No Tip');
+    const signature = String(payload?.signature || '').trim();
+    console.log('Service feedback:', {
+      rating,
+      tip,
+      signature,
+      submittedAt: payload?.submittedAt || new Date().toISOString(),
+    });
+  });
+
+  socket.on('panic', (val) => {
+    const panicOn = typeof val === 'boolean' ? val : Number(val) === 1;
+    state.panic = panicOn;
+    io.emit('state', { ...state, seconds });
+    console.log(`PANIC toggled: ${panicOn ? 'ON' : 'OFF'}`);
+    sendOSC('/light/panic', panicOn ? 1 : 0);
   });
 
   socket.on('disconnect', () => console.log('Client disconnected'));

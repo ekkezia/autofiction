@@ -15,6 +15,13 @@ const TCP_PORT = 4000;
 const HTTP_PORT = 4002;
 const TD_IP = '127.0.0.1'; // change to TD machine IP if on separate machine
 const TD_OSC_PORT = 9000;
+const CALL_VOICE_RATE = 240; // words/min for macOS `say` (slightly slower than previous)
+const CALL_WORD_RATE_JITTER = 12; // random +/- rate per word
+const CALL_WORD_PITCH_BASE = 50; // macOS speech base pitch command center
+const CALL_WORD_PITCH_JITTER = 7; // random +/- pitch per word
+const CALL_WORD_GAP_MIN_MS = 30;
+const CALL_WORD_GAP_MAX_MS = 95;
+const CALL_LOOP_GAP_MS = 1200;
 
 let seq = 1000;
 const queue = new Map(); // code → ticket
@@ -35,8 +42,29 @@ function oscString(str) {
 
 let audioProcess = null; // current afplay child process
 let callingCode = null; // code of ticket currently being called
+let audioTimer = null; // timer between words / loops
+
+function randomInt(min, max) {
+	return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+function shellQuote(value) {
+	return `'${String(value).replace(/'/g, `'\\''`)}'`;
+}
+
+function buildCallWords(ticket) {
+	const phrase = `Calling ${ticket.name}. Ticket number ${ticket.code.replace(/-/g, ' ')}.`;
+	return phrase
+		.trim()
+		.split(/\s+/)
+		.filter(Boolean);
+}
 
 function stopAudio() {
+	if (audioTimer) {
+		clearTimeout(audioTimer);
+		audioTimer = null;
+	}
 	if (audioProcess) {
 		audioProcess.kill();
 		audioProcess = null;
@@ -46,15 +74,31 @@ function stopAudio() {
 
 function startCallingLoop(ticket) {
 	callingCode = ticket.code;
-	const text = `Calling ${ticket.name}. Ticket number ${ticket.code.replace(/-/g, ' ')}.`;
-	console.log('Announcing:', text);
-	function loop() {
+	const words = buildCallWords(ticket);
+	console.log('Announcing (disjuncted mode):', words.join(' '));
+
+	function speakWord(index) {
 		if (callingCode !== ticket.code) return;
-		audioProcess = exec(`say -v "Fred" -r 280 "${text}"`, () => {
-			if (callingCode === ticket.code) setTimeout(loop, 1500);
+
+		if (index >= words.length) {
+			audioTimer = setTimeout(() => speakWord(0), CALL_LOOP_GAP_MS);
+			return;
+		}
+
+		const word = words[index];
+		const pitch = CALL_WORD_PITCH_BASE + randomInt(-CALL_WORD_PITCH_JITTER, CALL_WORD_PITCH_JITTER);
+		const rate = CALL_VOICE_RATE + randomInt(-CALL_WORD_RATE_JITTER, CALL_WORD_RATE_JITTER);
+		const text = `[[pbas ${pitch}]] ${word}`;
+		const cmd = `say -v "Fred" -r ${rate} ${shellQuote(text)}`;
+
+		audioProcess = exec(cmd, () => {
+			if (callingCode !== ticket.code) return;
+			const gap = randomInt(CALL_WORD_GAP_MIN_MS, CALL_WORD_GAP_MAX_MS);
+			audioTimer = setTimeout(() => speakWord(index + 1), gap);
 		});
 	}
-	loop();
+
+	speakWord(0);
 }
 
 function notifyTD(address, value) {

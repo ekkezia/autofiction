@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, Suspense } from 'react';
+import { useState, useEffect, useRef, useCallback, Suspense } from 'react';
 import { io } from 'socket.io-client';
 import archiveData from '../archive-assets.json';
 import { Canvas } from '@react-three/fiber';
@@ -308,6 +308,16 @@ function QueueBoard({ queue, isAdmin, callNext, admitCurrent, connected, queueEr
   const waiting  = queue.filter(t => t.status === 'waiting');
   const admitted = queue.filter(t => t.status === 'admitted');
   const current  = calling[0] || null;
+  const [nowTime, setNowTime] = useState(() =>
+    new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+  );
+
+  useEffect(() => {
+    const id = setInterval(() => {
+      setNowTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
+    }, 1000);
+    return () => clearInterval(id);
+  }, []);
 
   return (
     <div className="queue-board">
@@ -337,11 +347,15 @@ function QueueBoard({ queue, isAdmin, callNext, admitCurrent, connected, queueEr
 
       {/* Now Serving */}
       <div className="queue-now-serving">
+        <div style={{ marginBottom: 12, background: '#ff00ff', padding: 12, width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.5em', fontSize: '0.9em', color: '#555' }}> 
+          <div className="queue-now-label">WELCOME TO MATCHFIT!</div>
+          <div className="queue-now-clock">{nowTime}</div>
+        </div>
         <div className="queue-now-label">NOW SERVING · 正在叫号</div>
         {current ? (
           <>
-            <div className="queue-now-code">{current.code}</div>
-            <div className="queue-now-name">{current.name}</div>
+            <div className="queue-now-code" style={{ fontSize: '6rem' }}>{current.code}</div>
+            <div className="queue-now-name" style={{ textTransform: 'uppercase' }}>{current.name}</div>
             <div className="queue-now-counter">Counter {current.counter}</div>
           </>
         ) : (
@@ -371,7 +385,7 @@ function QueueCol({ title, tickets, accent }) {
           : tickets.map(t => (
             <div key={t.code} className="queue-ticket-row">
               <div className="queue-ticket-code">{t.code}</div>
-              <div className="queue-ticket-name">{t.name}</div>
+              <div className="queue-ticket-name" style={{ textTransform: 'uppercase' }}>{t.name}</div>
               <div className="queue-ticket-time">{new Date(t.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
             </div>
           ))
@@ -842,6 +856,8 @@ export default function App() {
   const [activeNav, setActiveNav]   = useState(0);
   const [showRegister, setShowReg]  = useState(false);
   const [isAdmin, setIsAdmin]       = useState(false);
+  const [isQueueFocus, setIsQueueFocus] = useState(false);
+  const prevNavRef = useRef(0);
   const { queue, connected, queueError, callNext, admitCurrent } = useQueue();
   const t = T[lang];
   const toggleLang = () => setLang(l => (l === 'zh' ? 'en' : 'zh'));
@@ -853,10 +869,65 @@ export default function App() {
     if (user === ADMIN_USER && pass === ADMIN_PASS) setIsAdmin(true);
   }
 
+  const toggleQueueFocus = useCallback(async () => {
+    if (isQueueFocus) {
+      setIsQueueFocus(false);
+      if (prevNavRef.current !== NAV_QUEUE) setActiveNav(prevNavRef.current);
+      if (document.fullscreenElement) {
+        try { await document.exitFullscreen(); } catch {}
+      }
+      return;
+    }
+
+    prevNavRef.current = activeNav;
+    setActiveNav(NAV_QUEUE);
+    setIsQueueFocus(true);
+    if (!document.fullscreenElement) {
+      try { await document.documentElement.requestFullscreen(); } catch {}
+    }
+  }, [activeNav, isQueueFocus]);
+
+  useEffect(() => {
+    function onKeyDown(e) {
+      if (String(e.key).toLowerCase() !== 'r') return;
+      const target = e.target;
+      const tag = target?.tagName?.toLowerCase();
+      const isTypingField = !!target?.isContentEditable || tag === 'input' || tag === 'textarea' || tag === 'select';
+      if (isTypingField) return;
+      e.preventDefault();
+      toggleQueueFocus();
+    }
+
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [toggleQueueFocus]);
+
+  useEffect(() => {
+    function onFullscreenChange() {
+      if (document.fullscreenElement) return;
+      if (!isQueueFocus) return;
+      setIsQueueFocus(false);
+      if (prevNavRef.current !== NAV_QUEUE) setActiveNav(prevNavRef.current);
+    }
+
+    document.addEventListener('fullscreenchange', onFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', onFullscreenChange);
+  }, [isQueueFocus]);
+
   function centerContent() {
     if (isRegistration) return <QueueBoard queue={queue} isAdmin={isAdmin} callNext={callNext} admitCurrent={admitCurrent} connected={connected} queueError={queueError} />;
     if (isAbout)        return <ArchiveContent t={t} />;
     return <StoriesContent t={t} />;
+  }
+
+  if (isQueueFocus) {
+    return (
+      <div className="site site--queue-focus">
+        <div className="queue-focus-screen">
+          <QueueBoard queue={queue} isAdmin={isAdmin} callNext={callNext} admitCurrent={admitCurrent} connected={connected} queueError={queueError} />
+        </div>
+      </div>
+    );
   }
 
   return (

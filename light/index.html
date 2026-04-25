@@ -5,19 +5,87 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Light Control</title>
   <script src="https://cdn.socket.io/4.7.0/socket.io.min.js"></script>
+  <script src="/config.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+    :root {
+      --mf-portal-dark: #1b3d82;
+      --mf-portal-header-from: #00008c;
+      --mf-portal-header-to: #1a77ff;
+      --mf-accent-gold: #ffcc00;
+      --mf-accent-gold-light: #ffee44;
+      --mf-accent-gold-dark: #cc8800;
+      --mf-hero-red: #cc0000;
+      --mf-hero-red-dark: #990000;
+    }
+
     body {
-      background: #000;
+      background: #0e1d3d;
       color: #fff;
-      font-family: 'Courier New', monospace;
+      font-family: 'Noto Sans SC', 'Segoe UI', sans-serif;
       height: 100vh;
       display: flex;
       align-items: center;
       justify-content: center;
       overflow: hidden;
       user-select: none;
+    }
+
+    .hidden { display: none !important; }
+
+    #controller-view {
+      width: 100%;
+      height: 100%;
+    }
+
+    /* ── Matchfit brand header ── */
+    #brand-header {
+      position: fixed;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 20;
+      width: min(860px, 96vw);
+      background: linear-gradient(90deg, var(--mf-portal-header-from) 0%, #0033dd 25%, var(--mf-portal-header-to) 55%, #0044cc 80%, var(--mf-portal-header-from) 100%);
+      border: 2px solid #0a1e50;
+      border-top: 0;
+      border-radius: 0 0 14px 14px;
+      border-bottom: 4px solid var(--mf-accent-gold);
+      box-shadow: 0 10px 28px rgba(0,0,0,0.35);
+      padding: 8px 16px 10px;
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      gap: 9px;
+    }
+
+    .brand-bars {
+      display: flex;
+      align-items: flex-end;
+      gap: 3px;
+      transform: translateY(-1px);
+    }
+
+    .brand-bars span {
+      display: block;
+      width: 7px;
+      background: var(--mf-accent-gold);
+      border-radius: 2px 2px 0 0;
+    }
+    .brand-bars .b1 { height: 10px; }
+    .brand-bars .b2 { height: 15px; }
+    .brand-bars .b3 { height: 23px; }
+    .brand-bars .b4 { height: 15px; }
+
+    .brand-text {
+      font-size: clamp(25px, 4vw, 38px);
+      font-weight: 900;
+      letter-spacing: 0.04em;
+      font-style: italic;
+      color: var(--mf-accent-gold);
+      text-shadow: 2px 2px 0 #885500, 0 0 24px rgba(255,220,0,0.35);
+      line-height: 1;
     }
 
     /* ── Timer ── */
@@ -40,6 +108,26 @@
     #timer.stopped {
       color: #222;
       text-shadow: none;
+    }
+
+    #duty-line {
+      position: absolute;
+      top: calc(50% - 170px);
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: clamp(16px, 2.8vw, 32px);
+      font-weight: 900;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--mf-accent-gold);
+      text-shadow: 2px 2px 0 #7a2b00, 0 0 16px rgba(255,215,0,0.22);
+      white-space: nowrap;
+      z-index: 5;
+      pointer-events: none;
+    }
+
+    #duty-host-name {
+      text-shadow: 2px 2px 0 #1b3d82;
     }
 
     /* ── Buttons shared ── */
@@ -89,10 +177,11 @@
     }
     #btn-spotlight.on .btn-label { color: #ffe066; }
 
-    /* ── PATH LIGHT — bottom right ── */
+    /* ── PATH LIGHT — bottom center ── */
     #btn-pathlight {
       bottom: 48px;
-      right: 48px;
+      left: 50%;
+      transform: translateX(-50%);
     }
     #btn-pathlight .btn-ring   { border-color: #333; }
     #btn-pathlight.on .btn-ring {
@@ -102,11 +191,10 @@
     }
     #btn-pathlight.on .btn-label { color: #66aaff; }
 
-    /* ── TIMER — bottom center ── */
+    /* ── TIMER — bottom right ── */
     #btn-timer {
       bottom: 48px;
-      left: 50%;
-      transform: translateX(-50%);
+      right: 48px;
     }
     #btn-timer .btn-ring   { border-color: #333; width: 52px; height: 52px; font-size: 18px; }
     #btn-timer.on .btn-ring {
@@ -116,11 +204,59 @@
     }
     #btn-timer.on .btn-label { color: #66ff99; }
 
+    /* ── FULLSCREEN — top left ── */
+    #btn-fullscreen {
+      top: 20px;
+      left: 20px;
+      gap: 0;
+    }
+    #btn-fullscreen .btn-ring {
+      width: 42px;
+      height: 42px;
+      font-size: 18px;
+      border-color: #333;
+    }
+    #btn-fullscreen.on .btn-ring {
+      border-color: #aaa;
+      box-shadow: 0 0 14px rgba(255,255,255,0.2);
+      background: rgba(255,255,255,0.06);
+    }
+
+    /* ── PANIC — top right ── */
+    #btn-panic {
+      top: 14px;
+      right: 14px;
+      gap: 5px;
+    }
+    #btn-panic .btn-ring {
+      width: 58px;
+      height: 58px;
+      border-color: #7a1010;
+      color: #ff6b6b;
+      font-size: 20px;
+      background: rgba(255,0,0,0.06);
+    }
+    #btn-panic .btn-label {
+      color: #b84848;
+      font-size: 9px;
+      letter-spacing: 0.18em;
+    }
+    #btn-panic:active .btn-ring,
+    #btn-panic.on .btn-ring {
+      border-color: #ff3b3b;
+      background: rgba(255,70,70,0.18);
+      box-shadow: 0 0 22px rgba(255,50,50,0.55), 0 0 52px rgba(255,50,50,0.25);
+      color: #ffd9d9;
+    }
+    #btn-panic.on .btn-label {
+      color: #ff8f8f;
+    }
+
     /* ── Connection dot ── */
     #conn {
       position: fixed;
       top: 20px;
-      right: 20px;
+      right: 88px;
       width: 8px;
       height: 8px;
       border-radius: 50%;
@@ -131,55 +267,361 @@
       background: #44ff88;
       box-shadow: 0 0 8px rgba(60,255,120,0.7);
     }
+
+    /* ── Feedback / Thank You views ── */
+    .full-view {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 96px 20px 20px;
+      background: radial-gradient(ellipse at top, #264d9a 0%, #122b62 48%, #0b1f4a 100%);
+    }
+
+    .feedback-card {
+      width: min(760px, 96vw);
+      border: 2px solid var(--mf-hero-red);
+      border-radius: 8px;
+      padding: 28px;
+      background: #ffffff;
+      box-shadow: 0 12px 34px rgba(0,0,0,0.45);
+    }
+
+    .feedback-title {
+      font-size: clamp(24px, 4vw, 36px);
+      margin-bottom: 10px;
+      letter-spacing: 0.03em;
+      color: var(--mf-hero-red);
+      font-weight: 900;
+      line-height: 1.15;
+    }
+
+    .feedback-subtitle {
+      color: #193d7d;
+      margin-bottom: 24px;
+      font-size: clamp(13px, 2vw, 16px);
+      line-height: 1.5;
+    }
+
+    .feedback-label {
+      display: block;
+      margin-bottom: 10px;
+      color: #6f1200;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      font-size: 11px;
+      font-weight: 900;
+    }
+
+    .star-row {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 22px;
+      flex-wrap: wrap;
+    }
+
+    .star-btn {
+      width: 56px;
+      height: 56px;
+      border-radius: 10px;
+      border: 1px solid #b7c2d8;
+      background: linear-gradient(180deg, #ffffff, #e8efff);
+      color: #63708f;
+      font-size: 30px;
+      cursor: pointer;
+      transition: transform 0.12s ease, border-color 0.2s, color 0.2s, background 0.2s;
+    }
+
+    .star-btn.active {
+      color: #7a4f00;
+      border-color: var(--mf-accent-gold-dark);
+      background: linear-gradient(180deg, #fff699, var(--mf-accent-gold));
+      box-shadow: 0 0 0 2px rgba(255,205,0,0.18);
+    }
+
+    .tip-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 22px;
+    }
+
+    .tip-btn {
+      min-width: 86px;
+      padding: 12px 14px;
+      border-radius: 999px;
+      border: 1px solid #bcc7dd;
+      background: linear-gradient(180deg, #ffffff, #edf3ff);
+      color: #1b3d82;
+      font-size: 14px;
+      font-weight: 800;
+      cursor: pointer;
+      transition: border-color 0.2s, color 0.2s, background 0.2s;
+    }
+
+    .tip-btn.active {
+      color: #880000;
+      border-color: var(--mf-accent-gold-dark);
+      background: linear-gradient(180deg, #ffff99, var(--mf-accent-gold));
+    }
+
+    .signature-wrap {
+      margin-bottom: 10px;
+    }
+
+    .signature-pad {
+      width: 100%;
+      height: 190px;
+      border: 2px solid #8da1cc;
+      border-radius: 10px;
+      background: #ffffff;
+      touch-action: none;
+      display: block;
+    }
+
+    .signature-actions {
+      margin-top: 8px;
+      display: flex;
+      justify-content: flex-end;
+    }
+
+    .signature-clear-btn {
+      border: 1px solid #a0b4db;
+      border-radius: 999px;
+      background: linear-gradient(180deg, #ffffff, #edf3ff);
+      color: #204586;
+      padding: 8px 12px;
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      cursor: pointer;
+    }
+
+    .form-error {
+      min-height: 18px;
+      color: #ff7f7f;
+      margin-bottom: 12px;
+      font-size: 12px;
+      letter-spacing: 0.04em;
+    }
+
+    .primary-btn {
+      width: 100%;
+      border: 1px solid var(--mf-accent-gold-dark);
+      border-radius: 10px;
+      background: linear-gradient(180deg, var(--mf-accent-gold-light), var(--mf-accent-gold));
+      color: #102f67;
+      padding: 14px;
+      font-size: 16px;
+      font-weight: 900;
+      cursor: pointer;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      transition: background 0.2s, box-shadow 0.2s;
+    }
+
+    .primary-btn:hover {
+      background: linear-gradient(180deg, #fff277, #ffd622);
+      box-shadow: 0 0 20px rgba(255,196,0,0.26);
+    }
+
+    .thankyou-copy {
+      color: #0f7f47;
+      font-size: clamp(14px, 2.3vw, 18px);
+      margin-bottom: 16px;
+      line-height: 1.5;
+      font-weight: 700;
+    }
+
+    #service-host-name {
+      color: var(--mf-portal-dark);
+      text-shadow: none;
+      text-transform: uppercase;
+    }
   </style>
 </head>
 <body>
+  <div id="brand-header" aria-label="MATCHFIT logo">
+    <div class="brand-bars">
+      <span class="b1"></span>
+      <span class="b2"></span>
+      <span class="b3"></span>
+      <span class="b4"></span>
+    </div>
+    <div class="brand-text">MATCHFIT</div>
+  </div>
 
-  <div id="timer" class="stopped">00:00</div>
+  <div id="controller-view">
+    <div id="duty-line">MISS <span id="duty-host-name">[NAME]</span> ON DUTY</div>
+    <div id="timer" class="stopped">00:00</div>
 
-  <!-- SPOTLIGHT -->
-  <button class="ctrl-btn" id="btn-spotlight" onclick="toggle('spotlight')">
-    <div class="btn-ring">☀</div>
-    <span class="btn-label">Spotlight</span>
-  </button>
+    <!-- FULLSCREEN -->
+    <button class="ctrl-btn" id="btn-fullscreen" onclick="toggleFullscreen()" aria-label="Toggle fullscreen">
+      <div class="btn-ring">⛶</div>
+    </button>
 
-  <!-- TIMER -->
-  <button class="ctrl-btn" id="btn-timer" onclick="toggle('timer')">
-    <div class="btn-ring">⏱</div>
-    <span class="btn-label">Timer</span>
-  </button>
+    <!-- PANIC -->
+    <button class="ctrl-btn" id="btn-panic" onclick="toggle('panic')" aria-label="Toggle panic signal">
+      <div class="btn-ring">!</div>
+      <span class="btn-label">Panic</span>
+    </button>
 
-  <!-- PATH LIGHT -->
-  <button class="ctrl-btn" id="btn-pathlight" onclick="toggle('pathlight')">
-    <div class="btn-ring">◎</div>
-    <span class="btn-label">Path Light</span>
-  </button>
+    <!-- SPOTLIGHT -->
+    <button class="ctrl-btn" id="btn-spotlight" onclick="toggle('spotlight')">
+      <div class="btn-ring">☀</div>
+      <span class="btn-label">Spotlight</span>
+    </button>
 
-  <div id="conn"></div>
+    <!-- PATH LIGHT -->
+    <button class="ctrl-btn" id="btn-pathlight" onclick="toggle('pathlight')">
+      <div class="btn-ring">◎</div>
+      <span class="btn-label">Path Light</span>
+    </button>
+
+     <!-- TIMER -->
+    <button class="ctrl-btn" id="btn-timer" onclick="toggle('timer')">
+      <div class="btn-ring">⏱</div>
+      <span class="btn-label">Timer</span>
+    </button>
+
+    <div id="conn"></div>
+  </div>
+
+  <div id="feedback-view" class="full-view hidden">
+    <div class="feedback-card">
+      <h1 class="feedback-title">Rate Your Service with Ms. <span id="service-host-name">[NAME]</span></h1>
+
+      <div class="star-row" id="star-row">
+        <button class="star-btn" type="button" data-stars="1" aria-label="1 star">★</button>
+        <button class="star-btn" type="button" data-stars="2" aria-label="2 stars">★</button>
+        <button class="star-btn" type="button" data-stars="3" aria-label="3 stars">★</button>
+        <button class="star-btn" type="button" data-stars="4" aria-label="4 stars">★</button>
+        <button class="star-btn" type="button" data-stars="5" aria-label="5 stars">★</button>
+      </div>
+
+      <!-- <label class="feedback-label">Tip Option</label>
+      <div class="tip-row" id="tip-row">
+        <button class="tip-btn active" type="button" data-tip="No Tip">No Tip</button>
+        <button class="tip-btn" type="button" data-tip="$5">$5</button>
+        <button class="tip-btn" type="button" data-tip="$10">$10</button>
+        <button class="tip-btn" type="button" data-tip="$20">$20</button>
+      </div>
+
+      <label class="feedback-label" for="signature-pad">Signature</label>
+      <div class="signature-wrap">
+        <canvas id="signature-pad" class="signature-pad" aria-label="Draw your signature"></canvas>
+        <div class="signature-actions">
+          <button id="signature-clear" class="signature-clear-btn" type="button">Clear</button>
+        </div>
+      </div> -->
+      <div class="form-error" id="feedback-error"></div>
+      <button id="feedback-submit" class="primary-btn" type="button">Submit</button>
+    </div>
+  </div>
+
+  <div id="thankyou-view" class="full-view hidden">
+    <div class="feedback-card">
+      <h1 class="feedback-title">Thank You for consulting with us.</h1>
+      <p class="feedback-subtitle">Please come again for good memories!</p>
+      <button id="reset-view-btn" class="primary-btn" type="button">OK</button>
+    </div>
+  </div>
 
   <script>
-    const socket = io('http://localhost:4002');
+    const socket = io();
 
-    const state = { spotlight: false, pathlight: false, timer: false };
+    const state = { spotlight: false, pathlight: false, timer: false, panic: false };
 
     const timerEl      = document.getElementById('timer');
     const connEl       = document.getElementById('conn');
     const spotlightBtn = document.getElementById('btn-spotlight');
     const pathlightBtn = document.getElementById('btn-pathlight');
     const timerBtn     = document.getElementById('btn-timer');
+    const fullscreenBtn = document.getElementById('btn-fullscreen');
+    const fullscreenIcon = fullscreenBtn.querySelector('.btn-ring');
+    const panicBtn = document.getElementById('btn-panic');
+    const controllerView = document.getElementById('controller-view');
+    const feedbackView = document.getElementById('feedback-view');
+    const thankyouView = document.getElementById('thankyou-view');
+    const starButtons = Array.from(document.querySelectorAll('.star-btn'));
+    const tipButtons = Array.from(document.querySelectorAll('.tip-btn'));
+    const signaturePad = document.getElementById('signature-pad');
+    const signatureClearBtn = document.getElementById('signature-clear');
+    const feedbackError = document.getElementById('feedback-error');
+    const feedbackSubmitBtn = document.getElementById('feedback-submit');
+    const resetViewBtn = document.getElementById('reset-view-btn');
+    const signatureCtx = signaturePad ? signaturePad.getContext('2d') : null;
+    const hasSignaturePad = Boolean(signaturePad && signatureCtx);
+    const serviceHostNameEl = document.getElementById('service-host-name');
+    const dutyHostNameEl = document.getElementById('duty-host-name');
+
+    const MISS_NAME_DEFAULT = '[NAME]';
+    const MISS_NAME = (
+      window.LIGHT_CONFIG?.missName ||
+      window.MATCHFIT_MISS_NAME ||
+      new URLSearchParams(window.location.search).get('miss') ||
+      MISS_NAME_DEFAULT
+    ).trim();
+
+    const feedback = {
+      rating: 0,
+      tip: 'No Tip',
+    };
+
+    let isSigning = false;
+    let signatureHasStroke = false;
 
     socket.on('connect',    () => connEl.classList.add('on'));
     socket.on('disconnect', () => connEl.classList.remove('on'));
+    socket.on('connect_error', (err) => {
+      console.error('Socket connect error:', err.message);
+    });
 
     socket.on('state', (s) => {
       state.spotlight = s.spotlight;
       state.pathlight = s.pathlight;
       state.timer     = s.timer;
+      state.panic     = Boolean(s.panic);
+      if (Number.isFinite(s.seconds)) {
+        timerEl.textContent = formatTime(Math.max(0, s.seconds));
+      }
       updateUI();
     });
 
     socket.on('timer_tick', (seconds) => {
       timerEl.textContent = formatTime(seconds);
+    });
+    socket.on('timer_complete', () => {
+      showFeedbackView();
+    });
+
+    document.addEventListener('fullscreenchange', updateFullscreenUI);
+    feedbackSubmitBtn.addEventListener('click', submitFeedback);
+    resetViewBtn.addEventListener('click', resetToController);
+    if (hasSignaturePad) {
+      signatureClearBtn?.addEventListener('click', clearSignaturePad);
+      signaturePad.addEventListener('pointerdown', beginSignature);
+      signaturePad.addEventListener('pointermove', drawSignature);
+      signaturePad.addEventListener('pointerup', endSignature);
+      signaturePad.addEventListener('pointercancel', endSignature);
+    }
+    window.addEventListener('resize', resizeSignaturePad);
+
+    starButtons.forEach((btn) => {
+      btn.addEventListener('click', () => {
+        feedback.rating = Number(btn.dataset.stars);
+        renderFeedbackSelections();
+        feedbackError.textContent = '';
+      });
+    });
+
+    tipButtons.forEach((btn) => {
+      btn.addEventListener('click', () => {
+        feedback.tip = btn.dataset.tip;
+        renderFeedbackSelections();
+      });
     });
 
     function toggle(key) {
@@ -192,10 +634,168 @@
       spotlightBtn.classList.toggle('on', state.spotlight);
       pathlightBtn.classList.toggle('on', state.pathlight);
       timerBtn.classList.toggle('on',     state.timer);
+      panicBtn.classList.toggle('on',     state.panic);
       timerEl.classList.toggle('running', state.timer);
       timerEl.classList.toggle('stopped', !state.timer);
       if (!state.timer) timerEl.textContent = '00:00';
+      if (state.timer) showControllerView();
     }
+
+    async function toggleFullscreen() {
+      try {
+        if (!document.fullscreenElement) {
+          await document.documentElement.requestFullscreen();
+        } else {
+          await document.exitFullscreen();
+        }
+      } catch (_) {
+        // Ignore browser gesture restrictions/errors.
+      }
+      updateFullscreenUI();
+    }
+
+    function updateFullscreenUI() {
+      const isFullscreen = Boolean(document.fullscreenElement);
+      fullscreenBtn.classList.toggle('on', isFullscreen);
+      fullscreenIcon.textContent = isFullscreen ? '🗗' : '⛶';
+    }
+
+    function renderFeedbackSelections() {
+      starButtons.forEach((btn) => {
+        const stars = Number(btn.dataset.stars);
+        btn.classList.toggle('active', stars <= feedback.rating);
+      });
+      tipButtons.forEach((btn) => {
+        btn.classList.toggle('active', btn.dataset.tip === feedback.tip);
+      });
+    }
+
+    function showControllerView() {
+      controllerView.classList.remove('hidden');
+      feedbackView.classList.add('hidden');
+      thankyouView.classList.add('hidden');
+    }
+
+    function showFeedbackView() {
+      controllerView.classList.add('hidden');
+      feedbackView.classList.remove('hidden');
+      thankyouView.classList.add('hidden');
+      feedbackError.textContent = '';
+      if (hasSignaturePad) {
+        resizeSignaturePad();
+        clearSignaturePad();
+      }
+    }
+
+    function showThankyouView() {
+      controllerView.classList.add('hidden');
+      feedbackView.classList.add('hidden');
+      thankyouView.classList.remove('hidden');
+    }
+
+    function submitFeedback() {
+      if (feedback.rating < 1) {
+        feedbackError.textContent = 'Please choose a star rating.';
+        return;
+      }
+      if (hasSignaturePad && !signatureHasStroke) {
+        feedbackError.textContent = 'Please draw your signature.';
+        return;
+      }
+
+      socket.emit('service_feedback', {
+        rating: feedback.rating,
+        tip: feedback.tip,
+        signature: 'drawn',
+        submittedAt: new Date().toISOString(),
+      });
+
+      showThankyouView();
+    }
+
+    function resetToController() {
+      feedback.rating = 0;
+      feedback.tip = 'No Tip';
+      feedbackError.textContent = '';
+      if (hasSignaturePad) {
+        clearSignaturePad();
+      }
+      renderFeedbackSelections();
+      showControllerView();
+    }
+
+    function resizeSignaturePad() {
+      if (!hasSignaturePad) return;
+      const rect = signaturePad.getBoundingClientRect();
+      if (!rect.width || !rect.height) return;
+
+      const ratio = window.devicePixelRatio || 1;
+      signaturePad.width = Math.floor(rect.width * ratio);
+      signaturePad.height = Math.floor(rect.height * ratio);
+      signatureCtx.setTransform(ratio, 0, 0, ratio, 0, 0);
+      signatureCtx.lineCap = 'round';
+      signatureCtx.lineJoin = 'round';
+      signatureCtx.strokeStyle = '#132f66';
+      signatureCtx.lineWidth = 2.4;
+      signatureCtx.clearRect(0, 0, rect.width, rect.height);
+      signatureHasStroke = false;
+      isSigning = false;
+    }
+
+    function clearSignaturePad() {
+      if (!hasSignaturePad) return;
+      const width = signaturePad.clientWidth;
+      const height = signaturePad.clientHeight;
+      signatureCtx.clearRect(0, 0, width, height);
+      signatureHasStroke = false;
+      isSigning = false;
+      feedbackError.textContent = '';
+    }
+
+    function signaturePoint(evt) {
+      if (!hasSignaturePad) return { x: 0, y: 0 };
+      const rect = signaturePad.getBoundingClientRect();
+      return {
+        x: evt.clientX - rect.left,
+        y: evt.clientY - rect.top,
+      };
+    }
+
+    function beginSignature(evt) {
+      if (!hasSignaturePad) return;
+      evt.preventDefault();
+      signaturePad.setPointerCapture(evt.pointerId);
+      const p = signaturePoint(evt);
+      signatureCtx.beginPath();
+      signatureCtx.moveTo(p.x, p.y);
+      isSigning = true;
+      signatureHasStroke = true;
+      feedbackError.textContent = '';
+    }
+
+    function drawSignature(evt) {
+      if (!hasSignaturePad) return;
+      if (!isSigning) return;
+      evt.preventDefault();
+      const p = signaturePoint(evt);
+      signatureCtx.lineTo(p.x, p.y);
+      signatureCtx.stroke();
+    }
+
+    function endSignature(evt) {
+      if (!hasSignaturePad) return;
+      if (!isSigning) return;
+      evt.preventDefault();
+      isSigning = false;
+      signatureCtx.closePath();
+    }
+
+    updateFullscreenUI();
+    renderFeedbackSelections();
+    if (serviceHostNameEl) serviceHostNameEl.textContent = MISS_NAME || MISS_NAME_DEFAULT;
+    if (dutyHostNameEl) dutyHostNameEl.textContent = MISS_NAME || MISS_NAME_DEFAULT;
+    if (hasSignaturePad) resizeSignaturePad();
+    showControllerView();
 
     function formatTime(s) {
       const m = Math.floor(s / 60).toString().padStart(2, '0');

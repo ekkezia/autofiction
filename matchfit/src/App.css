@@ -512,8 +512,23 @@ a { text-decoration: none; color: inherit; cursor: pointer; }
   background: linear-gradient(135deg, var(--color-portal-dark) 0%, #003399 60%, #0044cc 100%);
   color: #fff; padding: 20px; text-align: center; border-bottom: 4px solid var(--color-accent-gold);
 }
-.queue-now-label { font-size: 11px; font-weight: 700; letter-spacing: 0.12em; color: var(--color-accent-gold); margin-bottom: 8px; }
-.queue-now-code  { font-size: 3.8rem; font-weight: 900; letter-spacing: 0.08em; color: var(--color-accent-gold); line-height: 1; text-shadow: 2px 2px 0 rgba(0,0,0,0.3); }
+.queue-now-toprow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.queue-now-label { font-size: 11px; font-weight: 700; letter-spacing: 0.12em; color: var(--color-accent-gold); margin-bottom: 0; text-align: center; }
+.queue-now-clock {
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  color: #d8e7ff;
+  font-family: var(--font-mono);
+  white-space: nowrap;
+}
+.queue-now-code  { font-size: 3rem; font-weight: 900; letter-spacing: 0.08em; color: var(--color-accent-gold); line-height: 1; text-shadow: 2px 2px 0 rgba(0,0,0,0.3); }
 .queue-now-name  { font-size: 1.2rem; font-weight: 700; margin-top: 6px; }
 .queue-now-counter { font-size: 12px; color: #aaccff; margin-top: 4px; }
 .queue-now-empty { font-size: 1.2rem; color: rgba(255,255,255,0.35); padding: 10px 0; }
@@ -591,3 +606,83 @@ a { text-decoration: none; color: inherit; cursor: pointer; }
 
 /* REGISTRATION nav item accent */
 .nav-item--queue { color: var(--color-hero-red) !important; font-weight: 900 !important; border-left: 2px solid var(--color-accent-gold) !important; }
+
+/* ─── QUEUE-ONLY FULLSCREEN MODE (R key) ───────────────────────────────── */
+.site.site--queue-focus {
+  min-width: 0;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  background: #111;
+}
+
+.queue-focus-screen {
+  width: 100vw;
+  height: 100vh;
+  padding: 2px;
+  background: var(--color-border-gold);
+}
+
+.site--queue-focus .queue-board {
+  width: 100%;
+  height: 100%;
+}
+
+.site--queue-focus .queue-now-serving {
+  padding: clamp(20px, 4.8vh, 56px) 20px;
+}
+
+.site--queue-focus .queue-now-label {
+  font-size: clamp(13px, 1.5vw, 28px);
+}
+
+.site--queue-focus .queue-now-clock {
+  font-size: clamp(13px, 1.4vw, 26px);
+}
+
+.site--queue-focus .queue-now-code {
+  font-size: clamp(3rem, 10vw, 10rem);
+}
+
+.site--queue-focus .queue-now-name {
+  font-size: clamp(1.5rem, 3.1vw, 3.5rem);
+}
+
+.site--queue-focus .queue-now-counter {
+  font-size: clamp(14px, 1.7vw, 32px);
+}
+
+.site--queue-focus .queue-col-header {
+  padding: clamp(10px, 1.2vw, 20px);
+  font-size: clamp(12px, 1.3vw, 24px);
+}
+
+.site--queue-focus .queue-col-count {
+  font-size: clamp(10px, 1.15vw, 20px);
+}
+
+.site--queue-focus .queue-col-body {
+  max-height: none;
+}
+
+.site--queue-focus .queue-col-empty {
+  padding: clamp(20px, 3vh, 48px);
+  font-size: clamp(16px, 2vw, 36px);
+}
+
+.site--queue-focus .queue-ticket-row {
+  padding: clamp(10px, 1.2vw, 20px);
+}
+
+.site--queue-focus .queue-ticket-code {
+  font-size: clamp(18px, 2vw, 38px);
+  min-width: 0;
+}
+
+.site--queue-focus .queue-ticket-name {
+  font-size: clamp(16px, 1.8vw, 34px);
+}
+
+.site--queue-focus .queue-ticket-time {
+  font-size: clamp(13px, 1.4vw, 24px);
+}

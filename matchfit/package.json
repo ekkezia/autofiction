@@ -4,7 +4,9 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "sh -c 'node server/ticketing/queue.js & q=$!; trap \"kill $q 2>/dev/null || true\" EXIT INT TERM; vite'",
+    "dev:web": "vite",
+    "dev:queue": "node server/ticketing/queue.js",
     "build": "vite build",
     "preview": "vite preview"
   },
