@@ -49,7 +49,7 @@ const httpServer = http.createServer((req, res) => {
 
 const io = new Server(httpServer, { cors: { origin: '*' } });
 
-let state = { spotlight: false, pathlight: false, timer: false, panic: false };
+let state = { spotlight: false, timer: false, panic: false };
 
 let timerInterval = null;
 let seconds = 0;
@@ -60,14 +60,13 @@ function startTimer() {
   if (timerInterval) return;
   seconds = TIMER_START_SECONDS;
   io.emit('timer_tick', seconds);
-  sendOSC('/light/timer', seconds);
   timerInterval = setInterval(() => {
     seconds--;
     io.emit('timer_tick', seconds);
-    sendOSC('/light/timer', seconds);
     if (seconds <= 0) {
       stopTimer();
       state.timer = false;
+      sendOSC('/light/service', 0);
       io.emit('timer_complete');
       io.emit('state', { ...state, seconds });
     }
@@ -84,29 +83,29 @@ function resetTimer() {
   stopTimer();
   seconds = 0;
   io.emit('timer_tick', 0);
-  sendOSC('/light/timer', 0);
+}
+
+function asBool(val) {
+  return typeof val === 'boolean' ? val : Number(val) === 1;
 }
 
 io.on('connection', (socket) => {
   console.log('Client connected');
   socket.emit('state', { ...state, seconds });
 
-  socket.on('spotlight', (val) => {
-    state.spotlight = val;
+  socket.on('/light/intro', (val) => {
+    const spotlightOn = asBool(val);
+    state.spotlight = spotlightOn;
     io.emit('state', { ...state, seconds });
-    sendOSC('/light/spotlight', val ? 1 : 0);
+    sendOSC('/light/intro', spotlightOn ? 1 : 0);
   });
 
-  socket.on('pathlight', (val) => {
-    state.pathlight = val;
+  socket.on('/light/service', (val) => {
+    const timerOn = asBool(val);
+    state.timer = timerOn;
+    sendOSC('/light/service', timerOn ? 1 : 0);
     io.emit('state', { ...state, seconds });
-    sendOSC('/light/pathlight', val ? 1 : 0);
-  });
-
-  socket.on('timer', (val) => {
-    state.timer = val;
-    io.emit('state', { ...state, seconds });
-    if (val) {
+    if (timerOn) {
       startTimer();
     } else {
       resetTimer();

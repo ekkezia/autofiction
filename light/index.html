@@ -177,24 +177,11 @@
     }
     #btn-spotlight.on .btn-label { color: #ffe066; }
 
-    /* ── PATH LIGHT — bottom center ── */
-    #btn-pathlight {
+    /* ── SERVICE START/END — bottom center ── */
+    #btn-timer {
       bottom: 48px;
       left: 50%;
       transform: translateX(-50%);
-    }
-    #btn-pathlight .btn-ring   { border-color: #333; }
-    #btn-pathlight.on .btn-ring {
-      border-color: #66aaff;
-      box-shadow: 0 0 24px rgba(80,150,255,0.6), 0 0 60px rgba(60,130,255,0.25);
-      background: rgba(80,150,255,0.08);
-    }
-    #btn-pathlight.on .btn-label { color: #66aaff; }
-
-    /* ── TIMER — bottom right ── */
-    #btn-timer {
-      bottom: 48px;
-      right: 48px;
     }
     #btn-timer .btn-ring   { border-color: #333; width: 52px; height: 52px; font-size: 18px; }
     #btn-timer.on .btn-ring {
@@ -203,6 +190,37 @@
       background: rgba(80,255,130,0.07);
     }
     #btn-timer.on .btn-label { color: #66ff99; }
+    #btn-timer .btn-label {
+      letter-spacing: 0.06em;
+      font-size: 9px;
+      text-align: center;
+      max-width: 112px;
+      line-height: 1.15;
+    }
+
+    /* ── REVIEW — bottom right ── */
+    #btn-review {
+      bottom: 48px;
+      right: 48px;
+    }
+    #btn-review .btn-ring {
+      border-color: #2b4f96;
+      width: 52px;
+      height: 52px;
+      font-size: 18px;
+      color: #8dc3ff;
+      background: rgba(55,120,255,0.07);
+    }
+    #btn-review .btn-label {
+      color: #6ea9f5;
+      letter-spacing: 0.1em;
+      font-size: 9px;
+    }
+    #btn-review:active .btn-ring {
+      border-color: #70b3ff;
+      box-shadow: 0 0 16px rgba(112,179,255,0.45);
+      background: rgba(112,179,255,0.18);
+    }
 
     /* ── FULLSCREEN — top left ── */
     #btn-fullscreen {
@@ -454,7 +472,7 @@
   </div>
 
   <div id="controller-view">
-    <div id="duty-line">MISS <span id="duty-host-name">[NAME]</span> ON DUTY</div>
+    <div id="duty-line">MS. <span id="duty-host-name">[NAME]</span> ON DUTY</div>
     <div id="timer" class="stopped">00:00</div>
 
     <!-- FULLSCREEN -->
@@ -471,19 +489,19 @@
     <!-- SPOTLIGHT -->
     <button class="ctrl-btn" id="btn-spotlight" onclick="toggle('spotlight')">
       <div class="btn-ring">☀</div>
-      <span class="btn-label">Spotlight</span>
+      <span class="btn-label">Intro</span>
     </button>
 
-    <!-- PATH LIGHT -->
-    <button class="ctrl-btn" id="btn-pathlight" onclick="toggle('pathlight')">
-      <div class="btn-ring">◎</div>
-      <span class="btn-label">Path Light</span>
-    </button>
-
-     <!-- TIMER -->
+     <!-- SERVICE START/END -->
     <button class="ctrl-btn" id="btn-timer" onclick="toggle('timer')">
       <div class="btn-ring">⏱</div>
-      <span class="btn-label">Timer</span>
+      <span class="btn-label" id="btn-timer-label">START SERVICE</span>
+    </button>
+
+    <!-- REVIEW -->
+    <button class="ctrl-btn" id="btn-review" onclick="openReview()" aria-label="Open review page">
+      <div class="btn-ring">★</div>
+      <span class="btn-label">Review</span>
     </button>
 
     <div id="conn"></div>
@@ -532,13 +550,13 @@
   <script>
     const socket = io();
 
-    const state = { spotlight: false, pathlight: false, timer: false, panic: false };
+    const state = { spotlight: false, timer: false, panic: false };
 
     const timerEl      = document.getElementById('timer');
     const connEl       = document.getElementById('conn');
     const spotlightBtn = document.getElementById('btn-spotlight');
-    const pathlightBtn = document.getElementById('btn-pathlight');
     const timerBtn     = document.getElementById('btn-timer');
+    const timerBtnLabel = document.getElementById('btn-timer-label');
     const fullscreenBtn = document.getElementById('btn-fullscreen');
     const fullscreenIcon = fullscreenBtn.querySelector('.btn-ring');
     const panicBtn = document.getElementById('btn-panic');
@@ -581,7 +599,6 @@
 
     socket.on('state', (s) => {
       state.spotlight = s.spotlight;
-      state.pathlight = s.pathlight;
       state.timer     = s.timer;
       state.panic     = Boolean(s.panic);
       if (Number.isFinite(s.seconds)) {
@@ -593,10 +610,6 @@
     socket.on('timer_tick', (seconds) => {
       timerEl.textContent = formatTime(seconds);
     });
-    socket.on('timer_complete', () => {
-      showFeedbackView();
-    });
-
     document.addEventListener('fullscreenchange', updateFullscreenUI);
     feedbackSubmitBtn.addEventListener('click', submitFeedback);
     resetViewBtn.addEventListener('click', resetToController);
@@ -626,19 +639,27 @@
 
     function toggle(key) {
       state[key] = !state[key];
-      socket.emit(key, state[key]);
+      const socketChannelByKey = {
+        spotlight: '/light/intro',
+        timer: '/light/service',
+      };
+      socket.emit(socketChannelByKey[key] || key, state[key]);
       updateUI();
     }
 
     function updateUI() {
       spotlightBtn.classList.toggle('on', state.spotlight);
-      pathlightBtn.classList.toggle('on', state.pathlight);
       timerBtn.classList.toggle('on',     state.timer);
+      timerBtnLabel.textContent = state.timer ? 'ON SERVICE' : 'START SERVICE';
       panicBtn.classList.toggle('on',     state.panic);
       timerEl.classList.toggle('running', state.timer);
       timerEl.classList.toggle('stopped', !state.timer);
       if (!state.timer) timerEl.textContent = '00:00';
       if (state.timer) showControllerView();
+    }
+
+    function openReview() {
+      showFeedbackView();
     }
 
     async function toggleFullscreen() {
