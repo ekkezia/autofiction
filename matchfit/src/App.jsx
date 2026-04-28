@@ -2,7 +2,8 @@ import { useState, useEffect, useRef, useCallback, Suspense } from 'react';
 import { io } from 'socket.io-client';
 import archiveData from '../archive-assets.json';
 import { Canvas } from '@react-three/fiber';
-import { OrbitControls, useGLTF, Environment, Center } from '@react-three/drei';
+import { OrbitControls, Environment, Center } from '@react-three/drei';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { Document, Page, pdfjs } from 'react-pdf';
 import 'react-pdf/dist/Page/AnnotationLayer.css';
 import 'react-pdf/dist/Page/TextLayer.css';
@@ -10,25 +11,155 @@ import 'react-pdf/dist/Page/TextLayer.css';
 pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
 const SUPABASE     = import.meta.env.VITE_SUPABASE_STORAGE;
+const ASSET_SOURCE = (import.meta.env.VITE_ASSET_SOURCE || 'local').trim().toLowerCase();
 const QUEUE_SERVER = import.meta.env.VITE_QUEUE_SERVER || 'http://localhost:4002';
 
-// Convert local asset path → Supabase storage URL; pass external URLs through unchanged
+function localPathFromSource(src) {
+  if (!src) return src;
+  const clean = String(src).replace(/^\/+/, '');
+  const path = clean.startsWith('public/') ? clean.slice('public/'.length) : clean;
+  return `/${path}`;
+}
+
+// Convert local asset path → storage URL when configured; otherwise fall back to local path.
 function storageUrl(src) {
   if (!src || src.startsWith('http')) return src;
-  const path = src.startsWith('public/assets/') ? src.slice('public/assets/'.length)
-    : src.startsWith('/assets/')               ? src.slice('/assets/'.length)
-    : src.startsWith('assets/')                ? src.slice('assets/'.length)
-    : src;
-  return `${SUPABASE}/${path}`;
+
+  const localPath = localPathFromSource(src);
+  if (ASSET_SOURCE !== 'remote') return localPath;
+
+  const base = (SUPABASE || '').trim().replace(/\/+$/, '');
+  const hasValidRemoteBase = /^https?:\/\/[^/\s]+/i.test(base);
+  if (!hasValidRemoteBase) return localPath;
+
+  const clean = String(src).replace(/^\/+/, '');
+  const rawPath = clean.startsWith('public/assets/') ? clean.slice('public/assets/'.length)
+    : clean.startsWith('assets/') ? clean.slice('assets/'.length)
+    : clean.startsWith('public/') ? clean.slice('public/'.length)
+    : clean;
+
+  return `${base}/${rawPath}`;
+}
+
+const assetExistsCache = new Map();
+
+function shouldTreatAsMissingByContentType(url, contentType) {
+  const ct = (contentType || '').toLowerCase();
+  if (!ct) return false;
+  const lowerUrl = String(url || '').toLowerCase();
+  // Vite dev server fallback for missing files is text/html (index.html).
+  return ct.includes('text/html') && !lowerUrl.endsWith('.html');
+}
+
+function useAssetExists(url) {
+  const [exists, setExists] = useState(() => (url ? assetExistsCache.get(url) : true));
+
+  useEffect(() => {
+    if (!url) {
+      setExists(false);
+      return;
+    }
+
+    // Avoid false negatives for cross-origin sources that may block HEAD via CORS.
+    if (/^https?:\/\//i.test(url)) {
+      setExists(true);
+      return;
+    }
+
+    const cached = assetExistsCache.get(url);
+    if (cached !== undefined) {
+      setExists(cached);
+      return;
+    }
+
+    let alive = true;
+    const verify = async () => {
+      try {
+        const res = await fetch(url, { method: 'HEAD', cache: 'no-store' });
+        const contentType = res.headers.get('content-type') || '';
+        const ok = res.ok && !shouldTreatAsMissingByContentType(url, contentType);
+        assetExistsCache.set(url, ok);
+        if (alive) setExists(ok);
+      } catch {
+        assetExistsCache.set(url, false);
+        if (alive) setExists(false);
+      }
+    };
+
+    verify();
+    return () => {
+      alive = false;
+    };
+  }, [url]);
+
+  return exists;
 }
 
 function GlbModel({ src }) {
-  const { scene } = useGLTF(src);
+  const [scene, setScene] = useState(null);
+
+  useEffect(() => {
+    let alive = true;
+    const loader = new GLTFLoader();
+
+    loader.load(
+      src,
+      (gltf) => {
+        if (!alive) return;
+        setScene(gltf.scene);
+      },
+      undefined,
+      () => {
+        if (!alive) return;
+        setScene(null);
+      },
+    );
+
+    return () => {
+      alive = false;
+    };
+  }, [src]);
+
+  if (!scene) return null;
   return <Center><primitive object={scene} /></Center>;
 }
 
 function GlbViewer({ src, title }) {
   const path = storageUrl(src);
+  const [isBroken, setIsBroken] = useState(false);
+
+  useEffect(() => {
+    setIsBroken(false);
+  }, [path]);
+
+  useEffect(() => {
+    let alive = true;
+    const verify = async () => {
+      try {
+        const res = await fetch(path, { method: 'HEAD' });
+        const contentType = (res.headers.get('content-type') || '').toLowerCase();
+        if (!alive) return;
+        // Vite dev fallback serves index.html for unknown files (text/html), which breaks GLTF parsing.
+        if (!res.ok || contentType.includes('text/html')) setIsBroken(true);
+      } catch {
+        if (alive) setIsBroken(true);
+      }
+    };
+    verify();
+    return () => {
+      alive = false;
+    };
+  }, [path]);
+
+  if (isBroken) {
+    return (
+      <div className="glb-viewer glb-viewer--missing">
+        <div className="glb-missing">3D model unavailable</div>
+        <div className="glb-label">{title}</div>
+      </div>
+    );
+  }
+
   return (
     <div className="glb-viewer">
       <Canvas camera={{ position: [0, 6, 6], fov: 45 }}>
@@ -45,6 +176,98 @@ function GlbViewer({ src, title }) {
   );
 }
 
+function ArchiveImageCard({ item, t, onOpenImage }) {
+  const [broken, setBroken] = useState(false);
+  const src = storageUrl(item.src);
+  const exists = useAssetExists(src);
+  if (broken || exists === false) return null;
+
+  return (
+    <div className="archive-card">
+      <img
+        src={src}
+        className="archive-thumb"
+        alt={item.title}
+        style={{ cursor: 'zoom-in' }}
+        onClick={() => onOpenImage({ src, title: item.title })}
+        onError={() => setBroken(true)}
+      />
+      <div className="archive-card-body">
+        <div className="archive-card-title">{item.title}</div>
+        {item.author && <div className="archive-card-author">{t.by}: {item.author}</div>}
+        <div className="archive-card-desc">{item.description}</div>
+      </div>
+    </div>
+  );
+}
+
+function ArchiveVideoCard({ item, t, onOpenVideo }) {
+  const [broken, setBroken] = useState(false);
+  const src = storageUrl(item.src);
+  const exists = useAssetExists(src);
+  if (broken || exists === false) return null;
+
+  return (
+    <div className="archive-card" style={{flexDirection:'column',gap:4}}>
+      <div
+        className="video-thumb"
+        onClick={() => onOpenVideo({ src, title: item.title })}
+      >
+        <video
+          src={src}
+          muted
+          preload="metadata"
+          style={{width:'100%',height:'100%',objectFit:'cover',display:'block',pointerEvents:'none'}}
+          onError={() => setBroken(true)}
+        />
+        <div className="video-play-btn">▶</div>
+      </div>
+      <div className="archive-card-body">
+        <div className="archive-card-title">{item.title}</div>
+        {item.author && <div className="archive-card-author">{t.by}: {item.author}</div>}
+        <div className="archive-card-desc">{item.description}</div>
+      </div>
+    </div>
+  );
+}
+
+function ArchiveModelCard({ item, t }) {
+  const src = storageUrl(item.src);
+  const exists = useAssetExists(src);
+  if (exists === false) return null;
+
+  return (
+    <div className="archive-glb-card">
+      <GlbViewer src={item.src} title={item.title} />
+      <div className="archive-card-body">
+        <div className="archive-card-title">{item.title}</div>
+        {item.author && <div className="archive-card-author">{t.by}: {item.author}</div>}
+        <div className="archive-card-desc">{item.description}</div>
+      </div>
+    </div>
+  );
+}
+
+function ArchiveDocCard({ doc, t, onOpenPdf }) {
+  const isPdf = doc.directory?.toLowerCase().endsWith('.pdf');
+  const pdfSrc = isPdf ? storageUrl(doc.directory) : null;
+  const pdfExists = useAssetExists(pdfSrc);
+
+  return (
+    <div className="archive-doc">
+      <div className="archive-card-title">{doc.title}</div>
+      {doc.author && <div className="archive-card-author">{t.by}: {doc.author}</div>}
+      <div className="archive-card-desc">{doc.description}</div>
+      {doc.excerpt && <div className="archive-excerpt">"{doc.excerpt}"</div>}
+      {isPdf && pdfExists !== false && (
+        <button className="view-pdf-btn" onClick={() => onOpenPdf({ src: pdfSrc, title: doc.title })}>
+          📄 {t.viewPdf}
+        </button>
+      )}
+    </div>
+  );
+}
+
 // ─── TRANSLATIONS ─────────────────────────────────────────────────────────────
 const T = {
   zh: {
@@ -52,21 +275,21 @@ const T = {
     password: '密码',
     login: '登录',
     forgot: '忘记密码',
-    cardLabel: '相亲一卡通：',
-    recharge: '充值中心',
-    buyOnline: '在线购买',
-    tagline1: '让相遇不再偶然，让心动有迹可循',
-    tagline2: 'Where meetings are no longer by chance, and every heartbeat finds its way.',
-    greeting: '下午好',
-    navItems: ['征婚首页', '征婚会员', '同城聊天', '同城相亲', '本地分站', '红娘介绍', '在线客服', '帮助中心', '个人信息', '关于我们'],
-    heroPrefix: '找对象，就上',
-    femaleCol: '全国推荐女性会员',
-    maleCol: '全国推荐男性会员',
-    vertLeft: '你走的路都在向某人靠近',
-    vertRight: '缘分绝不会让你一直孤单',
-    burgerStat: '美味值 100%',
-    burgerPromo: ['全民撸堡', '自由加料'],
-    burgerBtn: '暴击加料',
+    cardLabel: '认可服务卡：',
+    recharge: '充值赞美余额',
+    buyOnline: '购买夸奖套餐',
+    tagline1: '在这里，你的努力会被认真看见',
+    tagline2: 'Here, your efforts are seen, praised, and validated.',
+    greeting: '欢迎光临',
+    navItems: ['认可首页', '顾问团队', '今日赞词', '鼓励电台', '服务方案', '团队介绍', '在线客服', '帮助中心', '我的档案', '关于我们'],
+    heroPrefix: '想被真诚夸奖，就来',
+    femaleCol: '本周值班赞美顾问',
+    maleCol: '今日高光客户',
+    vertLeft: '你的感受值得被理解',
+    vertRight: '你的成就值得被称赞',
+    burgerStat: '认可度 100%',
+    burgerPromo: ['今天也很棒', '请收下夸奖'],
+    burgerBtn: '领取赞词',
     archiveTitle: 'AUTOFICTION // 项目档案',
     all: '全部',
     by: '作者',
@@ -80,24 +303,25 @@ const T = {
       creativeDirection: '创意方向',
       digitalResearch: '数字研究',
     },
-    svc1Title: '为您专属 · 专业测试',
-    svc1: ['分析您的恋爱行为', '解析您的理想伴侣', '为您提供交往建议'],
-    svc2Title: '会员专享服务专区',
-    svc2: ['爱情顾问人工服务', '测试报告讲解服务', '人工推荐匹配'],
-    popupBrand: 'Silky Kitchen 王者归来',
+    svc1Title: '情绪认可 · 即时反馈',
+    svc1: ['1对1赞美咨询', '把你的努力说成可被看见的价值', '针对低落时刻提供情绪托举'],
+    svc2Title: '会员尊享服务',
+    svc2: ['成就复盘与高光提炼', '定制“夸奖脚本”音频', '阶段性自信维护计划'],
+    popupBrand: 'Recognition Lounge 今日菜单',
+    popupSub: '赞词服务 · 即时生效',
     close: '关闭',
-    popupDish: '招牌菜品',
-    popupBenefit: '到店福利',
+    popupDish: '赞美类型',
+    popupBenefit: '服务内容',
     popupMenu: [
-      ['丝滑鲍汁捞饭', '立减20元'],
-      ['金牌乳鸡皇', '赠送例汤'],
-      ['港式杨枝甘露', '第二份半价'],
-      ['招牌烧腊拼盘', '满100减30'],
+      ['情绪安抚夸奖', '15分钟暖心肯定'],
+      ['成就放大夸奖', '提炼你的3个高光点'],
+      ['职场认可夸奖', '会议前自信加成'],
+      ['关系修复夸奖', '温柔但坚定的价值确认'],
     ],
-    storiesTitle: '那天，他们遇见了彼此',
+    storiesTitle: '他们在这里重新看见自己',
     stories: [
-      '一年前我是在朋友推荐下来到这个网站的，当时也没抱太大希望。后来红娘老师和我聊了很多，了解情况后，帮我介绍了现在的妻子。第一次见面是在一家咖啡店，我们都有点紧张，但很快就聊开了。这一年里我们一步步走到今天，直到领了结婚证，才真正意识到彼此已经成为对方生活的一部分。如果没有当时的那次介绍，也不会有现在的我们……',
-      '我们是在这里认识的，但一开始其实并没有很快确定关系。更多的是断断续续的聊天，有时候忙起来也会几天不联系。后来红娘老师又帮我们重新牵了一次线，让我们再认真见了一面。那一次之后，才慢慢变得不一样，没有特别轰动的过程，就是从不太确定，到越来越习惯对方的存在。现在回头看，那次再试一次，刚好改变了后面的所有事情……',
+      '我原本只是抱着试试看的心态来做“被夸咨询”。没想到顾问没有敷衍，而是把我说不出口的辛苦一点点整理成清晰的价值。那次结束后我第一次觉得，原来我不是“还不够好”，而是一直没人认真肯定我。',
+      '连续做了三周服务后，我的状态变化非常明显。每次顾问都会先听我说，再用具体例子指出我做得好的地方。它不是空话，而是有证据的认可。现在我在工作汇报和人际沟通里都更有底气了。',
     ],
     viewPdf: '查看 PDF',
     toggleBtn: 'EN',
@@ -107,21 +331,21 @@ const T = {
     password: 'Password',
     login: 'Login',
     forgot: 'Forgot Password',
-    cardLabel: 'Matchmaking Card:',
-    recharge: 'Top Up',
-    buyOnline: 'Buy Online',
-    tagline1: 'Where meetings are no longer by chance',
-    tagline2: 'and every heartbeat finds its way.',
-    greeting: 'Good Afternoon',
-    navItems: ['Home', 'Members', 'Local Chat', 'Local Dating', 'City Branches', 'Matchmaker', 'Live Support', 'Help Center', 'My Profile', 'About Us'],
-    heroPrefix: 'Find Your Match on',
-    femaleCol: 'Recommended Female Members',
-    maleCol: 'Recommended Male Members',
-    vertLeft: 'Every path you walk leads toward someone',
-    vertRight: 'Fate will never leave you alone',
-    burgerStat: 'Delicious Level 100%',
-    burgerPromo: ['BURGERS FOR', 'EVERYONE'],
-    burgerBtn: 'CRITICAL HIT!',
+    cardLabel: 'Recognition Service Card:',
+    recharge: 'Top Up Praise Credits',
+    buyOnline: 'Buy Compliment Packages',
+    tagline1: 'Your effort is seen and celebrated here',
+    tagline2: 'Consultants validate your feelings and achievements in real time.',
+    greeting: 'Welcome Back',
+    navItems: ['Home', 'Consultants', 'Daily Praises', 'Encouragement Radio', 'Plans', 'Meet the Team', 'Live Support', 'Help Center', 'My Profile', 'About Us'],
+    heroPrefix: 'Need sincere compliments? Visit',
+    femaleCol: 'On-Duty Praise Consultants',
+    maleCol: "Today's Celebrated Clients",
+    vertLeft: 'Your feelings deserve validation',
+    vertRight: 'Your achievements deserve applause',
+    burgerStat: 'Recognition Meter 100%',
+    burgerPromo: ['YOU ARE DOING', 'BETTER THAN YOU THINK'],
+    burgerBtn: 'CLAIM PRAISE',
     archiveTitle: 'AUTOFICTION // PROJECT ARCHIVE',
     all: 'All',
     by: 'By',
@@ -135,24 +359,25 @@ const T = {
       creativeDirection: 'Creative Direction',
       digitalResearch: 'Digital Research',
     },
-    svc1Title: 'Exclusive · Professional Tests',
-    svc1: ['Analyze your love patterns', 'Discover your ideal partner', 'Get personalized dating advice'],
-    svc2Title: 'Members-Only Services',
-    svc2: ['Personal love consultant', 'Test results walkthrough', 'Manual matchmaking'],
-    storiesTitle: 'The Day They Found Each Other',
+    svc1Title: 'Emotional Validation · Instant Feedback',
+    svc1: ['1:1 compliment consulting sessions', 'Translate effort into visible value', 'Supportive reframing for low-mood moments'],
+    svc2Title: 'Members-Only Recognition Services',
+    svc2: ['Achievement recap and highlight extraction', 'Custom "praise script" audio', 'Confidence maintenance plans'],
+    storiesTitle: 'How Clients Felt Seen Again',
     stories: [
-      "A year ago a friend recommended this site to me — I didn't have high hopes. But the matchmaker spent a long time understanding my situation and introduced me to my now-wife. Our first meeting was at a coffee shop; we were both nervous but quickly found our rhythm. Step by step across this year, right up until we signed the marriage certificate, I truly realised we had become part of each other's lives. Without that introduction, none of this would exist.",
-      "We met here, but things didn't move quickly at first. Mostly scattered chats, sometimes going days without contact when life got busy. Then the matchmaker reconnected us for a more deliberate meeting. After that everything gradually became different — no dramatic turning point, just a slow shift from uncertainty to being completely comfortable in each other's presence. Looking back now, that one extra chance changed everything that came after.",
+      'I signed up for a compliment session expecting generic pep talk. Instead, the consultant listened carefully and reflected my progress with concrete language. I left feeling emotionally steadier and genuinely proud of what I had done that week.',
+      'After a month of weekly sessions, I stopped minimizing my achievements. The consultant helped me name my strengths, practice accepting praise, and speak about my work with confidence. It felt like being validated in a way I had needed for years.',
     ],
-    popupBrand: 'Silky Kitchen Returns',
+    popupBrand: 'Recognition Lounge Services',
+    popupSub: 'Compliment packages · delivered live',
     close: 'Close',
-    popupDish: 'Signature Dishes',
-    popupBenefit: 'Dine-In Rewards',
+    popupDish: 'Praise Style',
+    popupBenefit: 'What You Receive',
     popupMenu: [
-      ['Smooth Abalone Rice', '¥20 Off'],
-      ['Premium Roast Chicken', 'Free Soup'],
-      ['HK Mango Pomelo Sago', '2nd Half Price'],
-      ['BBQ Platter', '¥30 Off ¥100+'],
+      ['Calming Validation', '15-min reassuring session'],
+      ['Achievement Spotlight', 'Top 3 wins articulated clearly'],
+      ['Work Confidence Boost', 'Pre-meeting compliment prep'],
+      ['Relationship Repair Praise', 'Gentle but firm value affirmation'],
     ],
     viewPdf: 'View PDF',
     toggleBtn: '中文',
@@ -161,23 +386,59 @@ const T = {
 
 // ─── PROFILE DATA ─────────────────────────────────────────────────────────────
 const FEMALE_PROFILES = [
-  { img: 47, nameZh: 'Amy', ageZh: '23岁', cityZh: '纽约市', nameEn: 'Amy', ageEn: '23', cityEn: 'New York', desc: 'Outgoing and easy-going with great humor. Loves sports and music. Easy to get along with...' },
-  { img: 5,  nameZh: '无问西东', ageZh: '28岁', cityZh: '上海市', nameEn: 'Wuwen Xidong', ageEn: '28', cityEn: 'Shanghai', desc: 'Emotional yet rational, imaginative yet grounded. A natural born storyteller...' },
-  { img: 32, nameZh: 'Amy', ageZh: '23岁', cityZh: '纽约市', nameEn: 'Amy', ageEn: '23', cityEn: 'New York', desc: 'Outgoing and easy-going with great humor. Loves sports and music. Easy to get along with...' },
-  { img: 9,  nameZh: '无问西东', ageZh: '28岁', cityZh: '上海市', nameEn: 'Wuwen Xidong', ageEn: '28', cityEn: 'Shanghai', desc: 'Emotional yet rational, imaginative yet grounded. A natural born storyteller...' },
-  { img: 23, nameZh: 'Amy', ageZh: '23岁', cityZh: '纽约市', nameEn: 'Amy', ageEn: '23', cityEn: 'New York', desc: 'Outgoing and easy-going with great humor. Loves sports and music. Easy to get along with...' },
-  { img: 44, nameZh: '无问西东', ageZh: '28岁', cityZh: '上海市', nameEn: 'Wuwen Xidong', ageEn: '28', cityEn: 'Shanghai', desc: 'Emotional yet rational, imaginative yet grounded. A natural born storyteller...' },
-  { img: 38, nameZh: 'Amy', ageZh: '26岁', cityZh: '纽约市', nameEn: 'Amy', ageEn: '26', cityEn: 'New York', desc: 'Outgoing and easy-going with great humor. Loves sports and music. Easy to get along with...' },
+  { img: 47, nameZh: 'Amy', ageZh: '23岁', cityZh: '纽约市', nameEn: 'Amy', ageEn: '23', cityEn: 'New York', desc: 'Specializes in turning small wins into clear, confidence-building praise.' },
+  { img: 5,  nameZh: '无问西东', ageZh: '28岁', cityZh: '上海市', nameEn: 'Wuwen Xidong', ageEn: '28', cityEn: 'Shanghai', desc: 'Calm validation expert focused on emotional grounding and self-worth language.' },
+  { img: 32, nameZh: 'Amy', ageZh: '23岁', cityZh: '纽约市', nameEn: 'Amy', ageEn: '23', cityEn: 'New York', desc: 'Helps clients prepare for high-stakes moments with targeted affirmation scripts.' },
+  { img: 9,  nameZh: '无问西东', ageZh: '28岁', cityZh: '上海市', nameEn: 'Wuwen Xidong', ageEn: '28', cityEn: 'Shanghai', desc: 'Known for warm, specific compliments that make clients feel truly seen.' },
+  { img: 23, nameZh: 'Amy', ageZh: '23岁', cityZh: '纽约市', nameEn: 'Amy', ageEn: '23', cityEn: 'New York', desc: 'Transforms burnout narratives into achievement-focused personal storytelling.' },
+  { img: 44, nameZh: '无问西东', ageZh: '28岁', cityZh: '上海市', nameEn: 'Wuwen Xidong', ageEn: '28', cityEn: 'Shanghai', desc: 'Guides clients through self-doubt with structured praise and practical encouragement.' },
+  { img: 38, nameZh: 'Amy', ageZh: '26岁', cityZh: '纽约市', nameEn: 'Amy', ageEn: '26', cityEn: 'New York', desc: 'Confidence coach for career and life milestones, delivered through bespoke compliments.' },
 ];
 
 const MALE_PROFILES = [
-  { img: 12, nameZh: 'Andy', ageZh: '26岁', cityZh: '纽约市', nameEn: 'Andy', ageEn: '26', cityEn: 'New York', desc: 'Outgoing and easy-going with great humor. Loves sports and music. Easy to get along with...' },
-  { img: 15, nameZh: '道知我心', ageZh: '28岁', cityZh: '上海市', nameEn: 'Dao Zhiwoxin', ageEn: '28', cityEn: 'Shanghai', desc: 'Emotional yet rational, imaginative yet grounded. A natural born storyteller...' },
-  { img: 18, nameZh: 'Andy', ageZh: '26岁', cityZh: '纽约市', nameEn: 'Andy', ageEn: '26', cityEn: 'New York', desc: 'Outgoing and easy-going with great humor. Loves sports and music. Easy to get along with...' },
-  { img: 22, nameZh: '道知我心', ageZh: '28岁', cityZh: '上海市', nameEn: 'Dao Zhiwoxin', ageEn: '28', cityEn: 'Shanghai', desc: 'Emotional yet rational, imaginative yet grounded. A natural born storyteller...' },
-  { img: 33, nameZh: 'Andy', ageZh: '26岁', cityZh: '纽约市', nameEn: 'Andy', ageEn: '26', cityEn: 'New York', desc: 'Outgoing and easy-going with great humor. Loves sports and music. Easy to get along with...' },
-  { img: 52, nameZh: '道知我心', ageZh: '28岁', cityZh: '上海市', nameEn: 'Dao Zhiwoxin', ageEn: '28', cityEn: 'Shanghai', desc: 'Emotional yet rational, imaginative yet grounded. A natural born storyteller...' },
-  { img: 57, nameZh: 'Andy', ageZh: '26岁', cityZh: '纽约市', nameEn: 'Andy', ageEn: '26', cityEn: 'New York', desc: 'Outgoing and easy-going with great humor. Loves sports and music. Easy to get along with...' },
+  { img: 12, nameZh: 'Andy', ageZh: '26岁', cityZh: '纽约市', nameEn: 'Andy', ageEn: '26', cityEn: 'New York', desc: 'Regained presentation confidence after three guided praise sessions.' },
+  { img: 15, nameZh: '道知我心', ageZh: '28岁', cityZh: '上海市', nameEn: 'Dao Zhiwoxin', ageEn: '28', cityEn: 'Shanghai', desc: 'Used validation coaching to recover from burnout and restart creative work.' },
+  { img: 18, nameZh: 'Andy', ageZh: '26岁', cityZh: '纽约市', nameEn: 'Andy', ageEn: '26', cityEn: 'New York', desc: 'Learned to articulate achievements without guilt through weekly compliment practice.' },
+  { img: 22, nameZh: '道知我心', ageZh: '28岁', cityZh: '上海市', nameEn: 'Dao Zhiwoxin', ageEn: '28', cityEn: 'Shanghai', desc: 'Built stronger boundaries after hearing consistent value-based affirmation.' },
+  { img: 33, nameZh: 'Andy', ageZh: '26岁', cityZh: '纽约市', nameEn: 'Andy', ageEn: '26', cityEn: 'New York', desc: 'Turned imposter syndrome into progress tracking with consultant-led praise reviews.' },
+  { img: 52, nameZh: '道知我心', ageZh: '28岁', cityZh: '上海市', nameEn: 'Dao Zhiwoxin', ageEn: '28', cityEn: 'Shanghai', desc: 'Now books monthly sessions to stay emotionally validated during intense workloads.' },
+  { img: 57, nameZh: 'Andy', ageZh: '26岁', cityZh: '纽约市', nameEn: 'Andy', ageEn: '26', cityEn: 'New York', desc: 'Reported better communication at home after practicing appreciation language.' },
+];
+
+const CONSULTANT_PROFILES = [
+  {
+    name: 'Tara N',
+    role: 'Movement + Observation Specialist',
+    blurb: 'Tara leads movement-and-observation sessions where body language, pacing, and tiny behavior patterns are translated into specific, confidence-building recognition.',
+  },
+  {
+    name: 'Yimeng',
+    role: 'Music Therapy + Calm Specialist',
+    blurb: 'Yimeng combines music-therapy structure with warm validation coaching to lower anxiety, regulate mood, and help clients receive compliments with calm self-trust.',
+  },
+];
+
+const TEAM_MEMBERS = [
+  {
+    name: 'Kezia Widjaja',
+    role: 'Operation Manager',
+    blurb: 'Leads daily service quality, scheduling, and client journey design. Kezia has a reputation for turning complex operations into warm, consistent client experiences.',
+  },
+  {
+    name: 'Kurt Qian',
+    role: 'Technical Intern',
+    blurb: 'Supports queue tooling, diagnostics, and rapid UI fixes. Kurt focuses on reliability and smooth handoffs so consultants can stay present with clients.',
+  },
+  {
+    name: 'Leo Zheng',
+    role: 'Designer',
+    blurb: 'Shapes the visual language for praise sessions, dashboards, and client touchpoints. Leo designs for emotional clarity, confidence, and ease of use.',
+  },
+  {
+    name: 'Shihan Tan',
+    role: 'Human Resource Manager',
+    blurb: 'Oversees consultant training, onboarding, and team wellbeing. Shihan builds a culture where empathy, feedback, and professionalism scale together.',
+  },
 ];
 
 // ─── useQueue hook ─────────────────────────────────────────────────────────────
@@ -255,16 +516,16 @@ function RegisterPage({ onClose, onRegistered }) {
     <div className="register-overlay" onClick={onClose}>
       <div className="register-modal" onClick={e => e.stopPropagation()}>
         <div className="register-modal-bar">
-          <span className="register-modal-title">MATCH FIT · 排队登记 / Queue Registration</span>
+          <span className="register-modal-title">THE RECOGNITION OFFICE · 赞美服务登记 / Session Registration</span>
           <button className="pdf-close-btn" onClick={onClose}>✕</button>
         </div>
         {done ? (
           <div className="register-done">
             <div className="register-done-code">{done.code}</div>
             <div className="register-done-name">{done.name}</div>
-            <div className="register-done-sub">请等候叫号 · Please wait to be called</div>
+            <div className="register-done-sub">请等候顾问呼叫 · Please wait for your compliment session</div>
             <div className="register-done-meta">
-              <span>Counter: <strong>{done.counter}</strong></span>
+              <span>Consultant Desk: <strong>{done.counter}</strong></span>
               <span>Time: <strong>{new Date(done.timestamp).toLocaleTimeString()}</strong></span>
             </div>
             {/* <button className="register-done-btn" onClick={() => { onRegistered(); onClose(); }}>
@@ -272,7 +533,7 @@ function RegisterPage({ onClose, onRegistered }) {
             </button> */}
             <div className="register-done-actions">
               <button className="register-next-btn" onClick={resetForm}>
-                + 再登记一人 / Register Another
+                + 再登记一位客户 / Register Another Client
               </button>
               <span className="register-countdown">
                 自动重置 {countdown}s…
@@ -281,7 +542,7 @@ function RegisterPage({ onClose, onRegistered }) {
           </div>
         ) : (
           <form className="register-form" onSubmit={handleSubmit}>
-            <label className="register-label">请输入您的姓名 / Enter your name</label>
+            <label className="register-label">请输入您的姓名（用于赞美服务） / Enter your name for your session</label>
             <input
               className="register-input"
               type="text"
@@ -293,7 +554,7 @@ function RegisterPage({ onClose, onRegistered }) {
               disabled={loading}
             />
             <button className="register-submit" type="submit" disabled={loading || !name.trim()}>
-              {loading ? '处理中…' : '登记取号 / Get Ticket →'}
+              {loading ? '处理中…' : '加入 / Join →'}
             </button>
           </form>
         )}
@@ -331,14 +592,14 @@ function QueueBoard({ queue, isAdmin, callNext, admitCurrent, connected, queueEr
             onClick={callNext}
             disabled={!connected || !!current || waiting.length === 0}
           >
-            📣 CALL NEXT
+            📣 CALL NEXT CLIENT
           </button>
           <button
             className="queue-admin-btn queue-admin-btn--admit"
             onClick={admitCurrent}
             disabled={!connected || !current}
           >
-            ✓ ADMIT
+            ✓ COMPLETE SESSION
           </button>
         </div>
       )}
@@ -347,27 +608,27 @@ function QueueBoard({ queue, isAdmin, callNext, admitCurrent, connected, queueEr
 
       {/* Now Serving */}
       <div className="queue-now-serving">
-        <div style={{ marginBottom: 12, background: '#ff00ff', padding: 12, width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.5em', fontSize: '0.9em', color: '#555' }}> 
-          <div className="queue-now-label">WELCOME TO MATCHFIT!</div>
+        <div style={{ marginBottom: 12, background: '#ff00ff', padding: 12, width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.5em', fontSize: '0.9em', color: '#555' }}>
+          <div className="queue-now-label">WELCOME TO THE RECOGNITION OFFICE!</div>
           <div className="queue-now-clock">{nowTime}</div>
         </div>
-        <div className="queue-now-label">NOW SERVING · 正在叫号</div>
+        <div className="queue-now-label">NOW PRAISING · 正在赞美</div>
         {current ? (
           <>
             <div className="queue-now-code" style={{ fontSize: '6rem' }}>{current.code}</div>
             <div className="queue-now-name" style={{ textTransform: 'uppercase' }}>{current.name}</div>
-            <div className="queue-now-counter">Counter {current.counter}</div>
+            <div className="queue-now-counter">Desk {current.counter}</div>
           </>
         ) : (
-          <div className="queue-now-empty">— 暂无 —</div>
+          <div className="queue-now-empty">— 暂无服务中 —</div>
         )}
       </div>
 
       {/* Three columns */}
       <div className="queue-columns">
-        <QueueCol title="等候中 Waiting" tickets={waiting}  accent="waiting"  />
-        <QueueCol title="叫号中 Calling"  tickets={calling}  accent="calling"  />
-        <QueueCol title="已入场 Admitted" tickets={admitted} accent="admitted" />
+        <QueueCol title="待 Waiting" tickets={waiting}  accent="waiting"  />
+        <QueueCol title="服务中 In Session"       tickets={calling}  accent="calling"  />
+        <QueueCol title="已完成 Completed"        tickets={admitted} accent="admitted" />
       </div>
     </div>
   );
@@ -415,7 +676,7 @@ function LoginBar({ t, onToggleLang, onRegister, onLogin, isAdmin }) {
         <button className="login-btn" onClick={handleLogin}>{t.login}</button>
         {isAdmin && <span className="admin-badge">ADMIN</span>}
         <span className="login-link">{t.forgot}</span>
-        <button className="register-btn" onClick={onRegister}>REGISTER / 登记</button>
+        <button className="register-btn" onClick={onRegister}>BOOK SESSION / 预约服务</button>
       </div>
       <div className="login-right">
         <span>{t.cardLabel}</span>
@@ -432,13 +693,11 @@ function SiteHeader({ t }) {
   return (
     <div className="site-header">
       <div className="logo">
-        <div className="logo-bars">
-          <span className="bar b1" />
-          <span className="bar b2" />
-          <span className="bar b3" />
-          <span className="bar b4" />
-        </div>
-        <span className="logo-text">Match Fit</span>
+        <img
+          className="logo-image"
+          src="/logo/logo.png"
+          alt="THE RECOGNITION OFFICE logo"
+        />
       </div>
       <div className="tagline">
         <div className="tagline-1">{t.tagline1}</div>
@@ -450,6 +709,40 @@ function SiteHeader({ t }) {
 
 // ─── SiteNav ──────────────────────────────────────────────────────────────────
 const NAV_QUEUE = 'queue';
+const NAV_CONSULTANTS = 1;
+const NAV_TEAM = 5;
+const NAV_ABOUT = 9;
+const NAV_PATHS = [
+  '/',
+  '/consultants',
+  '/daily-praises',
+  '/encouragement-radio',
+  '/plans',
+  '/team',
+  '/support',
+  '/help',
+  '/profile',
+  '/about',
+];
+
+function normalizePath(pathname) {
+  if (!pathname) return '/';
+  const clean = pathname.replace(/\/+$/, '');
+  return clean || '/';
+}
+
+function pathFromNav(nav) {
+  if (nav === NAV_QUEUE) return '/queue';
+  if (typeof nav === 'number' && NAV_PATHS[nav]) return NAV_PATHS[nav];
+  return '/';
+}
+
+function navFromPath(pathname) {
+  const clean = normalizePath(pathname);
+  if (clean === '/queue') return NAV_QUEUE;
+  const idx = NAV_PATHS.indexOf(clean);
+  return idx >= 0 ? idx : 0;
+}
 
 function SiteNav({ t, activeNav, onNavClick }) {
   return (
@@ -467,7 +760,7 @@ function SiteNav({ t, activeNav, onNavClick }) {
         className={`nav-item nav-item--queue${activeNav === NAV_QUEUE ? ' active' : ''}`}
         href="#"
         onClick={e => { e.preventDefault(); onNavClick(NAV_QUEUE); }}
-      >REGISTRATION</a>
+      >QUEUE</a>
     </nav>
   );
 }
@@ -477,7 +770,7 @@ function HeroBanner({ t }) {
   return (
     <div className="hero-banner">
       <span className="hero-prefix">{t.heroPrefix}</span>
-      <span className="hero-brand">MATCH FIT</span>
+      <span className="hero-brand">THE RECOGNITION OFFICE</span>
     </div>
   );
 }
@@ -486,13 +779,13 @@ function HeroBanner({ t }) {
 function BurgerAd({ t }) {
   return (
     <div className="outer-ad">
-      <div className="burger-logo">7th Street Burger</div>
+      <div className="burger-logo">Recognition Meter</div>
       <div className="burger-stat">
         <div className="burger-stat-label">{t.burgerStat}</div>
         <div className="burger-stat-bar"><div className="burger-stat-fill" /></div>
       </div>
-      <div className="burger-emoji">🍔</div>
-      <div className="burger-char">👨‍🍳</div>
+      <div className="burger-emoji">🏆</div>
+      <div className="burger-char">💬</div>
       <div className="burger-promo">
         {t.burgerPromo[0]}<br />{t.burgerPromo[1]}
       </div>
@@ -639,6 +932,54 @@ function StoriesContent({ t }) {
   );
 }
 
+function ConsultantsContent() {
+  return (
+    <div className="center-content">
+      <div className="stories-box">
+        <div className="stories-title">Consultants</div>
+        {CONSULTANT_PROFILES.map((consultant) => (
+          <div key={consultant.name} className="story-item">
+            <img
+              src={`https://i.pravatar.cc/112?u=${encodeURIComponent(consultant.name)}`}
+              className="story-photo"
+              alt={consultant.name}
+            />
+            <p className="story-text">
+              <strong>{consultant.name}</strong> · {consultant.role}
+              <br />
+              {consultant.blurb}
+            </p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function TeamContent() {
+  return (
+    <div className="center-content">
+      <div className="stories-box">
+        <div className="stories-title">Meet the Team</div>
+        {TEAM_MEMBERS.map((member) => (
+          <div key={member.name} className="story-item">
+            <img
+              src={`https://i.pravatar.cc/112?u=${encodeURIComponent(member.name)}`}
+              className="story-photo"
+              alt={member.name}
+            />
+            <p className="story-text">
+              <strong>{member.name}</strong> · {member.role}
+              <br />
+              {member.blurb}
+            </p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ─── ArchiveContent ───────────────────────────────────────────────────────────
 function ArchiveContent({ t }) {
   const [activeTab, setActiveTab] = useState('all');
@@ -693,20 +1034,12 @@ function ArchiveContent({ t }) {
               {images.length > 0 && (
                 <div className="archive-grid">
                   {images.map(item => (
-                    <div key={item.id} className="archive-card">
-                      <img
-                        src={storageUrl(item.src)}
-                        className="archive-thumb"
-                        alt={item.title}
-                        style={{ cursor: 'zoom-in' }}
-                        onClick={() => setImageOpen({ src: storageUrl(item.src), title: item.title })}
-                      />
-                      <div className="archive-card-body">
-                        <div className="archive-card-title">{item.title}</div>
-                        {item.author && <div className="archive-card-author">{t.by}: {item.author}</div>}
-                        <div className="archive-card-desc">{item.description}</div>
-                      </div>
-                    </div>
+                    <ArchiveImageCard
+                      key={item.id}
+                      item={item}
+                      t={t}
+                      onOpenImage={setImageOpen}
+                    />
                   ))}
                 </div>
               )}
@@ -714,57 +1047,24 @@ function ArchiveContent({ t }) {
               {videos.length > 0 && (
                 <div className="archive-grid">
                   {videos.map(item => (
-                    <div key={item.id} className="archive-card" style={{flexDirection:'column',gap:4}}>
-                      <div
-                        className="video-thumb"
-                        onClick={() => setVideoOpen({ src: storageUrl(item.src), title: item.title })}
-                      >
-                        <video
-                          src={storageUrl(item.src)}
-                          muted
-                          preload="metadata"
-                          style={{width:'100%',height:'100%',objectFit:'cover',display:'block',pointerEvents:'none'}}
-                        />
-                        <div className="video-play-btn">▶</div>
-                      </div>
-                      <div className="archive-card-body">
-                        <div className="archive-card-title">{item.title}</div>
-                        {item.author && <div className="archive-card-author">{t.by}: {item.author}</div>}
-                        <div className="archive-card-desc">{item.description}</div>
-                      </div>
-                    </div>
+                    <ArchiveVideoCard
+                      key={item.id}
+                      item={item}
+                      t={t}
+                      onOpenVideo={setVideoOpen}
+                    />
                   ))}
                 </div>
               )}
 
-              {docs.map(doc => {
-                const isPdf = doc.directory?.toLowerCase().endsWith('.pdf');
-                return (
-                  <div key={doc.id} className="archive-doc">
-                    <div className="archive-card-title">{doc.title}</div>
-                    {doc.author && <div className="archive-card-author">{t.by}: {doc.author}</div>}
-                    <div className="archive-card-desc">{doc.description}</div>
-                    {doc.excerpt && <div className="archive-excerpt">"{doc.excerpt}"</div>}
-                    {isPdf && (
-                      <button className="view-pdf-btn" onClick={() => setPdfOpen({ src: storageUrl(doc.directory), title: doc.title })}>
-                        📄 {t.viewPdf}
-                      </button>
-                    )}
-                  </div>
-                );
-              })}
+              {docs.map(doc => (
+                <ArchiveDocCard key={doc.id} doc={doc} t={t} onOpenPdf={setPdfOpen} />
+              ))}
 
               {models.length > 0 && (
                 <div className="archive-glb-grid">
                   {models.map(item => (
-                    <div key={item.id} className="archive-glb-card">
-                      <GlbViewer src={item.src} title={item.title} />
-                      <div className="archive-card-body">
-                        <div className="archive-card-title">{item.title}</div>
-                        {item.author && <div className="archive-card-author">{t.by}: {item.author}</div>}
-                        <div className="archive-card-desc">{item.description}</div>
-                      </div>
-                    </div>
+                    <ArchiveModelCard key={item.id} item={item} t={t} />
                   ))}
                 </div>
               )}
@@ -826,10 +1126,10 @@ function Popup({ t, onClose }) {
     <div className="popup">
       <button className="popup-close" onClick={onClose}>{t.close}</button>
       <div className="popup-head">
-        <span className="popup-chef-icon">👨‍🍳</span>
+        <span className="popup-chef-icon">🏆</span>
         <div>
           <div className="popup-brand">{t.popupBrand}</div>
-          <div className="popup-sub">招牌粤菜 · 正宗出品</div>
+          <div className="popup-sub">{t.popupSub}</div>
         </div>
       </div>
       <table className="popup-table">
@@ -853,7 +1153,7 @@ const ADMIN_PASS = 'admin';
 export default function App() {
   const [lang, setLang]             = useState('zh');
   const [showPopup, setShowPopup]   = useState(true);
-  const [activeNav, setActiveNav]   = useState(0);
+  const [activeNav, setActiveNav]   = useState(() => navFromPath(window.location.pathname));
   const [showRegister, setShowReg]  = useState(false);
   const [isAdmin, setIsAdmin]       = useState(false);
   const [isQueueFocus, setIsQueueFocus] = useState(false);
@@ -862,8 +1162,18 @@ export default function App() {
   const t = T[lang];
   const toggleLang = () => setLang(l => (l === 'zh' ? 'en' : 'zh'));
 
-  const isAbout        = activeNav === t.navItems.length - 1;
+  const isConsultants  = activeNav === NAV_CONSULTANTS;
+  const isTeam         = activeNav === NAV_TEAM;
+  const isAbout        = activeNav === NAV_ABOUT;
   const isRegistration = activeNav === NAV_QUEUE;
+
+  function navigateTo(nav) {
+    setActiveNav(nav);
+    const nextPath = pathFromNav(nav);
+    if (normalizePath(window.location.pathname) !== nextPath) {
+      window.history.pushState({}, '', nextPath);
+    }
+  }
 
   function handleLogin(user, pass) {
     if (user === ADMIN_USER && pass === ADMIN_PASS) setIsAdmin(true);
@@ -872,7 +1182,7 @@ export default function App() {
   const toggleQueueFocus = useCallback(async () => {
     if (isQueueFocus) {
       setIsQueueFocus(false);
-      if (prevNavRef.current !== NAV_QUEUE) setActiveNav(prevNavRef.current);
+      if (prevNavRef.current !== NAV_QUEUE) navigateTo(prevNavRef.current);
       if (document.fullscreenElement) {
         try { await document.exitFullscreen(); } catch {}
       }
@@ -880,12 +1190,20 @@ export default function App() {
     }
 
     prevNavRef.current = activeNav;
-    setActiveNav(NAV_QUEUE);
+    navigateTo(NAV_QUEUE);
     setIsQueueFocus(true);
     if (!document.fullscreenElement) {
       try { await document.documentElement.requestFullscreen(); } catch {}
     }
   }, [activeNav, isQueueFocus]);
+
+  useEffect(() => {
+    function onPopState() {
+      setActiveNav(navFromPath(window.location.pathname));
+    }
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+  }, []);
 
   useEffect(() => {
     function onKeyDown(e) {
@@ -907,7 +1225,7 @@ export default function App() {
       if (document.fullscreenElement) return;
       if (!isQueueFocus) return;
       setIsQueueFocus(false);
-      if (prevNavRef.current !== NAV_QUEUE) setActiveNav(prevNavRef.current);
+      if (prevNavRef.current !== NAV_QUEUE) navigateTo(prevNavRef.current);
     }
 
     document.addEventListener('fullscreenchange', onFullscreenChange);
@@ -916,6 +1234,8 @@ export default function App() {
 
   function centerContent() {
     if (isRegistration) return <QueueBoard queue={queue} isAdmin={isAdmin} callNext={callNext} admitCurrent={admitCurrent} connected={connected} queueError={queueError} />;
+    if (isConsultants)  return <ConsultantsContent />;
+    if (isTeam)         return <TeamContent />;
     if (isAbout)        return <ArchiveContent t={t} />;
     return <StoriesContent t={t} />;
   }
@@ -934,7 +1254,7 @@ export default function App() {
     <div className="site">
       <LoginBar t={t} onToggleLang={toggleLang} onRegister={() => setShowReg(true)} onLogin={handleLogin} isAdmin={isAdmin} />
       <SiteHeader t={t} />
-      <SiteNav t={t} activeNav={activeNav} onNavClick={setActiveNav} />
+      <SiteNav t={t} activeNav={activeNav} onNavClick={navigateTo} />
       <HeroBanner t={t} />
       <div className="main-layout">
         <BurgerAd t={t} />
@@ -949,7 +1269,7 @@ export default function App() {
       {showRegister && (
         <RegisterPage
           onClose={() => setShowReg(false)}
-          onRegistered={() => setActiveNav(NAV_QUEUE)}
+          onRegistered={() => navigateTo(NAV_QUEUE)}
         />
       )}
     </div>

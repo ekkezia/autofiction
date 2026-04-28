@@ -62,13 +62,12 @@ void printTicket(const TicketData &ticket) {
   printer.justify('C');
   printer.boldOn();
   printer.setSize('L');
-  printer.println(F("YOUR LOVE"));
-  printer.println(F("IS WAITING"));
+  printer.println(F("SERVICE"));
   printer.boldOff();
 
   printer.setSize('S');
   printer.println(F("----------------"));
-  printer.println(F("MATCHFIT INC."));
+  printer.println(F("THE RECOGNITION OFFICE"));
   printer.println(F("----------------"));
   printer.feed(1);
 

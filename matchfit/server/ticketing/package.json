@@ -1,7 +1,7 @@
 {
-  "name": "matchfit-queue-server",
+  "name": "the-recognition-office-queue-server",
   "version": "1.0.0",
-  "description": "Queue/registration server for Match Fit",
+  "description": "Queue/registration server for THE RECOGNITION OFFICE",
   "main": "queue.js",
   "scripts": {
     "start": "node queue.js"

@@ -478,7 +478,7 @@
     {
       "id": "if-004",
       "sectionId": "digitalResearch",
-      "title": "Matchmaking Agency China - Research Clip",
+      "title": "Recognition Consulting in China - Research Clip",
       "url": "https://www.youtube.com/embed/EWDoYQ27JCY?start=2458",
       "directory": "external://youtube.com/watch?v=EWDoYQ27JCY&t=2458s",
       "description": "Digital research source from YouTube, starting at the requested timestamp.",
@@ -552,10 +552,10 @@
     {
       "id": "dres-001",
       "sectionId": "digitalResearch",
-      "title": "Reasons of Going to Matchmaking Agency",
-      "directory": "docs/digital-research/reasons-matchmaking-agency.md",
-      "description": "Interview notes summarizing motivations behind matchmaking agency use.",
-      "excerpt": "want to make parents stop bothering them about marriage; most time is spent on work not social life; \"can meet more people via agency, its more EFFICIENT\"; people wanna skip the struggles (and use their partner wealth to accommodate that); men is expected to ideally have car and mortgage free apart",
+      "title": "Why Clients Book Recognition Consulting",
+      "directory": "docs/digital-research/reasons-recognition-consulting.md",
+      "description": "Interview notes summarizing motivations for paid compliment and validation sessions.",
+      "excerpt": "clients wanted structured emotional support, specific praise for real effort, and a safe place to feel seen after long work weeks; many valued efficient, consultant-led confidence boosts over generic motivational content.",
       "author": "Elizabeth Kezia Widjaja"
     },
     {

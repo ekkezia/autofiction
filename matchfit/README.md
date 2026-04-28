@@ -1,4 +1,4 @@
-# Matchfit
+# THE RECOGNITION OFFICE
 
 ## Run
 
@@ -11,7 +11,7 @@ npm run dev
 
 To switch the calling system into queue-only fullscreen mode:
 
-1. Open the Matchfit app in the browser.
+1. Open THE RECOGNITION OFFICE in the browser.
 2. Click once on the page so it has keyboard focus.
 3. Press `R` to enter fullscreen queue mode.
 4. Press `R` again (or `Esc`) to exit and return to normal view.

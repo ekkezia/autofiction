@@ -163,7 +163,7 @@ void printTicket(const TicketData &ticket) {
   printer.boldOff();
   printer.setSize('S');
   printer.println(F("----------------"));
-  printer.println(F("MATCHFIT INC."));
+  printer.println(F("THE RECOGNITION OFFICE"));
   printer.println(F("----------------"));
   printer.feed(1);
 
@@ -182,7 +182,7 @@ void printTicket(const TicketData &ticket) {
     printer.printBarcode(ticket.barcode.c_str(), CODE128);
     printer.println(ticket.barcode);
   } else {
-    printer.println(F("Ask for MatchFit assistance."));
+    printer.println(F("Ask for THE RECOGNITION OFFICE assistance."));
   }
   printer.println(ticket.barcode);
 
@@ -257,7 +257,7 @@ void loop() {
       TicketData debugTicket;
       debugTicket.number = "9999";
       debugTicket.counter = "A1";
-      debugTicket.barcode = "MATCHFIT-9999";
+      debugTicket.barcode = "THE RECOGNITION OFFICE-9999";
       debugTicket.time = "12:34";
       debugTicket.bitmapWidth = 0;
       debugTicket.bitmapHeight = 0;
