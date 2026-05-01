@@ -7,29 +7,62 @@
   <script src="https://cdn.socket.io/4.7.0/socket.io.min.js"></script>
   <script src="/config.js"></script>
   <style>
+    @import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;600;700;800&family=Bungee&family=MonteCarlo&family=Noto+Sans+SC:wght@400;700;900&family=ZCOOL+KuaiLe&display=swap');
+
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --mf-portal-dark: #1b3d82;
-      --mf-portal-header-from: #00008c;
-      --mf-portal-header-to: #1a77ff;
-      --mf-accent-gold: #ffcc00;
-      --mf-accent-gold-light: #ffee44;
-      --mf-accent-gold-dark: #cc8800;
-      --mf-hero-red: #cc0000;
-      --mf-hero-red-dark: #990000;
+      --font-portal: "Baloo 2", "Noto Sans SC", "Microsoft YaHei", sans-serif;
+      --font-display: "Bungee", "ZCOOL KuaiLe", "Noto Sans SC", cursive;
+      --font-wordmark: "MonteCarlo", "Brush Script MT", cursive;
+
+      --mf-portal-dark: #0353ad;
+      --mf-portal-header-from: #0a5ac7;
+      --mf-portal-header-to: #fe4fd5;
+      --mf-accent-gold: #ffe01f;
+      --mf-accent-gold-light: #fff98d;
+      --mf-accent-gold-dark: #ff8f00;
+      --mf-hero-red: #ff2d66;
+      --mf-hero-red-dark: #e4004d;
     }
 
     body {
-      background: #0e1d3d;
+      background:
+        radial-gradient(circle at 16% 22%, rgba(255, 255, 255, 0.55) 0 2px, transparent 3px),
+        radial-gradient(circle at 80% 14%, rgba(255, 255, 255, 0.34) 0 3px, transparent 4px),
+        radial-gradient(circle at 36% 70%, rgba(255, 208, 246, 0.48) 0 26px, transparent 27px),
+        linear-gradient(140deg, #0f79d2 0%, #5a41de 38%, #a73adf 67%, #ff57b2 100%);
+      background-size: 180% 180%;
+      animation: portalGradientShift 16s ease-in-out infinite alternate;
       color: #fff;
-      font-family: 'Noto Sans SC', 'Segoe UI', sans-serif;
+      font-family: var(--font-portal);
       height: 100vh;
       display: flex;
       align-items: center;
       justify-content: center;
       overflow: hidden;
       user-select: none;
+    }
+
+    @keyframes portalGradientShift {
+      0% {
+        background-position: 0% 50%;
+      }
+      50% {
+        background-position: 100% 50%;
+      }
+      100% {
+        background-position: 0% 50%;
+      }
+    }
+
+    #controller-view,
+    #controller-view * ,
+    #feedback-view,
+    #feedback-view * ,
+    #thankyou-view,
+    #thankyou-view * {
+      color: #fff;
     }
 
     .hidden { display: none !important; }
@@ -47,11 +80,11 @@
       transform: translateX(-50%);
       z-index: 20;
       width: min(860px, 96vw);
-      background: linear-gradient(90deg, var(--mf-portal-header-from) 0%, #0033dd 25%, var(--mf-portal-header-to) 55%, #0044cc 80%, var(--mf-portal-header-from) 100%);
-      border: 2px solid #0a1e50;
+      background: linear-gradient(90deg, #0f83d8 0%, #2ad8cb 22%, #ff79ca 58%, #ffa44a 100%);
+      border: 2px solid #14dbb3;
       border-top: 0;
       border-radius: 0 0 14px 14px;
-      border-bottom: 4px solid var(--mf-accent-gold);
+      border-bottom: 4px solid #feef49;
       box-shadow: 0 10px 28px rgba(0,0,0,0.35);
       padding: 8px 16px 10px;
       display: flex;
@@ -80,11 +113,21 @@
 
     .brand-text {
       font-size: clamp(25px, 4vw, 38px);
-      font-weight: 900;
-      letter-spacing: 0.04em;
-      font-style: italic;
-      color: var(--mf-accent-gold);
-      text-shadow: 2px 2px 0 #885500, 0 0 24px rgba(255,220,0,0.35);
+      line-height: 1;
+    }
+
+    .recognition-wordmark {
+      font-family: var(--font-wordmark);
+      font-size: clamp(34px, 5vw, 54px);
+      font-weight: 400;
+      letter-spacing: 0.015em;
+      text-transform: none;
+      font-style: normal;
+      color: #fff;
+      text-shadow:
+        0 0 3px rgba(255, 0, 0, 0.9),
+        0 0 9px rgba(255, 0, 0, 0.75),
+        0 0 18px rgba(255, 40, 40, 0.65);
       line-height: 1;
     }
 
@@ -106,7 +149,7 @@
       text-shadow: 0 0 60px rgba(255,255,255,0.15);
     }
     #timer.stopped {
-      color: #222;
+      color: #fff;
       text-shadow: none;
     }
 
@@ -120,6 +163,7 @@
       letter-spacing: 0.08em;
       text-transform: uppercase;
       color: var(--mf-accent-gold);
+      font-family: var(--font-display);
       text-shadow: 2px 2px 0 #7a2b00, 0 0 16px rgba(255,215,0,0.22);
       white-space: nowrap;
       z-index: 5;
@@ -148,7 +192,7 @@
       width: 64px;
       height: 64px;
       border-radius: 50%;
-      border: 2px solid #333;
+      border: 2px solid #fff;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -162,6 +206,7 @@
       color: #444;
       transition: color 0.3s;
       text-transform: uppercase;
+      font-family: var(--font-display);
     }
 
     /* ── SPOTLIGHT — bottom left ── */
@@ -169,11 +214,14 @@
       bottom: 48px;
       left: 48px;
     }
-    #btn-spotlight .btn-ring   { border-color: #333; }
+    #btn-spotlight .btn-ring   { border-color: #d6d6d6; }
     #btn-spotlight.on .btn-ring {
-      border-color: #ffe066;
-      box-shadow: 0 0 24px rgba(255,220,80,0.6), 0 0 60px rgba(255,200,40,0.25);
-      background: rgba(255,220,80,0.08);
+      border-color: #fff;
+      box-shadow:
+        0 0 36px rgba(255, 232, 120, 0.95),
+        0 0 88px rgba(255, 214, 72, 0.6),
+        0 0 140px rgba(255, 196, 42, 0.45);
+      background: rgba(255,220,80,0.14);
     }
     #btn-spotlight.on .btn-label { color: #ffe066; }
 
@@ -183,9 +231,9 @@
       left: 50%;
       transform: translateX(-50%);
     }
-    #btn-timer .btn-ring   { border-color: #333; width: 52px; height: 52px; font-size: 18px; }
+    #btn-timer .btn-ring   { border-color: #fff; width: 52px; height: 52px; font-size: 18px; }
     #btn-timer.on .btn-ring {
-      border-color: #66ff99;
+      border-color: #fff;
       box-shadow: 0 0 20px rgba(80,255,130,0.5), 0 0 50px rgba(60,220,100,0.2);
       background: rgba(80,255,130,0.07);
     }
@@ -204,22 +252,22 @@
       right: 48px;
     }
     #btn-review .btn-ring {
-      border-color: #2b4f96;
+      border-color: #fff;
       width: 52px;
       height: 52px;
       font-size: 18px;
-      color: #8dc3ff;
-      background: rgba(55,120,255,0.07);
+      color: #fff;
+      background: rgba(255, 224, 31, 0.14);
     }
     #btn-review .btn-label {
-      color: #6ea9f5;
+      color: #fff;
       letter-spacing: 0.1em;
       font-size: 9px;
     }
     #btn-review:active .btn-ring {
-      border-color: #70b3ff;
-      box-shadow: 0 0 16px rgba(112,179,255,0.45);
-      background: rgba(112,179,255,0.18);
+      border-color: #fff;
+      box-shadow: 0 0 16px rgba(255, 224, 31, 0.45), 0 0 30px rgba(255, 45, 102, 0.24);
+      background: rgba(255, 224, 31, 0.18);
     }
 
     /* ── FULLSCREEN — top left ── */
@@ -232,10 +280,10 @@
       width: 42px;
       height: 42px;
       font-size: 18px;
-      border-color: #333;
+      border-color: #fff;
     }
     #btn-fullscreen.on .btn-ring {
-      border-color: #aaa;
+      border-color: #fff;
       box-shadow: 0 0 14px rgba(255,255,255,0.2);
       background: rgba(255,255,255,0.06);
     }
@@ -249,10 +297,10 @@
     #btn-panic .btn-ring {
       width: 58px;
       height: 58px;
-      border-color: #7a1010;
-      color: #ff6b6b;
+      border-color: #fff;
+      color: #fff;
       font-size: 20px;
-      background: rgba(255,0,0,0.06);
+      background: rgba(255, 45, 102, 0.72);
     }
     #btn-panic .btn-label {
       color: #b84848;
@@ -261,10 +309,10 @@
     }
     #btn-panic:active .btn-ring,
     #btn-panic.on .btn-ring {
-      border-color: #ff3b3b;
-      background: rgba(255,70,70,0.18);
+      border-color: #fff;
+      background: rgba(228, 0, 77, 0.92);
       box-shadow: 0 0 22px rgba(255,50,50,0.55), 0 0 52px rgba(255,50,50,0.25);
-      color: #ffd9d9;
+      color: #fff;
     }
     #btn-panic.on .btn-label {
       color: #ff8f8f;
@@ -294,7 +342,10 @@
       align-items: center;
       justify-content: center;
       padding: 96px 20px 20px;
-      background: radial-gradient(ellipse at top, #264d9a 0%, #122b62 48%, #0b1f4a 100%);
+      background:
+        radial-gradient(circle at 18% 24%, rgba(255, 255, 255, 0.2) 0 2px, transparent 3px),
+        radial-gradient(circle at 76% 16%, rgba(255, 255, 255, 0.16) 0 3px, transparent 4px),
+        linear-gradient(140deg, #5a41de 0%, #a73adf 62%, #ff57b2 100%);
     }
 
     .feedback-card {
@@ -302,7 +353,7 @@
       border: 2px solid var(--mf-hero-red);
       border-radius: 8px;
       padding: 28px;
-      background: #ffffff;
+      background: rgba(10, 18, 48, 0.86);
       box-shadow: 0 12px 34px rgba(0,0,0,0.45);
     }
 
@@ -316,7 +367,7 @@
     }
 
     .feedback-subtitle {
-      color: #193d7d;
+      color: #fff;
       margin-bottom: 24px;
       font-size: clamp(13px, 2vw, 16px);
       line-height: 1.5;
@@ -344,15 +395,15 @@
       height: 56px;
       border-radius: 10px;
       border: 1px solid #b7c2d8;
-      background: linear-gradient(180deg, #ffffff, #e8efff);
-      color: #63708f;
+      background: linear-gradient(180deg, rgba(255,255,255,0.22), rgba(255,255,255,0.08));
+      color: #fff;
       font-size: 30px;
       cursor: pointer;
       transition: transform 0.12s ease, border-color 0.2s, color 0.2s, background 0.2s;
     }
 
     .star-btn.active {
-      color: #7a4f00;
+      color: #fff;
       border-color: var(--mf-accent-gold-dark);
       background: linear-gradient(180deg, #fff699, var(--mf-accent-gold));
       box-shadow: 0 0 0 2px rgba(255,205,0,0.18);
@@ -370,8 +421,8 @@
       padding: 12px 14px;
       border-radius: 999px;
       border: 1px solid #bcc7dd;
-      background: linear-gradient(180deg, #ffffff, #edf3ff);
-      color: #1b3d82;
+      background: linear-gradient(180deg, rgba(255,255,255,0.22), rgba(255,255,255,0.08));
+      color: #fff;
       font-size: 14px;
       font-weight: 800;
       cursor: pointer;
@@ -379,7 +430,7 @@
     }
 
     .tip-btn.active {
-      color: #880000;
+      color: #fff;
       border-color: var(--mf-accent-gold-dark);
       background: linear-gradient(180deg, #ffff99, var(--mf-accent-gold));
     }
@@ -393,7 +444,7 @@
       height: 190px;
       border: 2px solid #8da1cc;
       border-radius: 10px;
-      background: #ffffff;
+      background: rgba(255, 255, 255, 0.1);
       touch-action: none;
       display: block;
     }
@@ -407,8 +458,8 @@
     .signature-clear-btn {
       border: 1px solid #a0b4db;
       border-radius: 999px;
-      background: linear-gradient(180deg, #ffffff, #edf3ff);
-      color: #204586;
+      background: linear-gradient(180deg, rgba(255,255,255,0.22), rgba(255,255,255,0.08));
+      color: #fff;
       padding: 8px 12px;
       font-size: 12px;
       font-weight: 900;
@@ -430,7 +481,7 @@
       border: 1px solid var(--mf-accent-gold-dark);
       border-radius: 10px;
       background: linear-gradient(180deg, var(--mf-accent-gold-light), var(--mf-accent-gold));
-      color: #102f67;
+      color: #fff;
       padding: 14px;
       font-size: 16px;
       font-weight: 900;
@@ -454,21 +505,21 @@
     }
 
     #service-host-name {
-      color: var(--mf-portal-dark);
+      color: #fff;
       text-shadow: none;
       text-transform: uppercase;
     }
   </style>
 </head>
 <body>
-  <div id="brand-header" aria-label="MATCHFIT logo">
+  <div id="brand-header" aria-label="The Recognition Office logo">
     <div class="brand-bars">
       <span class="b1"></span>
       <span class="b2"></span>
       <span class="b3"></span>
       <span class="b4"></span>
     </div>
-    <div class="brand-text">MATCHFIT</div>
+    <div class="brand-text recognition-wordmark">The Recognition Office</div>
   </div>
 
   <div id="controller-view">
