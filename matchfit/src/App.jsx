@@ -285,8 +285,6 @@ const T = {
     heroPrefix: '想被真诚夸奖，就来',
     femaleCol: '本周值班赞美顾问',
     maleCol: '今日高光客户',
-    vertLeft: '你的感受值得被理解',
-    vertRight: '你的成就值得被称赞',
     burgerStat: '认可度 100%',
     burgerPromo: ['今天也很棒', '请收下夸奖'],
     burgerBtn: '领取赞词',
@@ -337,12 +335,10 @@ const T = {
     tagline1: 'Your effort is seen and celebrated here',
     tagline2: 'Consultants validate your feelings and achievements in real time.',
     greeting: 'Welcome Back',
-    navItems: ['Home', 'Consultants', 'Daily Praises', 'Encouragement Radio', 'Plans', 'Meet the Team', 'Live Support', 'Help Center', 'My Profile', 'About Us'],
+    navItems: ['Home', 'Consultants On-Duty', 'Daily Praises', 'Meet the Team', 'Help Center', 'Learn More'],
     heroPrefix: 'Need sincere compliments? Visit',
-    femaleCol: 'On-Duty Praise Consultants',
+    femaleCol: 'Our Consultants & Experts',
     maleCol: "Today's Celebrated Clients",
-    vertLeft: 'Your feelings deserve validation',
-    vertRight: 'Your achievements deserve applause',
     burgerStat: 'Recognition Meter 100%',
     burgerPromo: ['YOU ARE DOING', 'BETTER THAN YOU THINK'],
     burgerBtn: 'CLAIM PRAISE',
@@ -406,14 +402,14 @@ const MALE_PROFILES = [
 ];
 
 const CONSULTANT_PROFILES = [
-  {
-    name: 'Tara N',
-    role: 'Movement + Observation Specialist',
-    blurb: 'Tara leads movement-and-observation sessions where body language, pacing, and tiny behavior patterns are translated into specific, confidence-building recognition.',
-  },
+  // {
+  //   name: 'Tara N',
+  //   role: 'Movement + Observation Specialist',
+  //   blurb: 'Tara leads movement-and-observation sessions where body language, pacing, and tiny behavior patterns are translated into specific, confidence-building recognition.',
+  // },
   {
     name: 'Yimeng',
-    role: 'Music Therapy + Calm Specialist',
+    role: 'Music Therapy + Movement + Observation Specialist',
     blurb: 'Yimeng combines music-therapy structure with warm validation coaching to lower anxiety, regulate mood, and help clients receive compliments with calm self-trust.',
   },
 ];
@@ -516,7 +512,10 @@ function RegisterPage({ onClose, onRegistered }) {
     <div className="register-overlay" onClick={onClose}>
       <div className="register-modal" onClick={e => e.stopPropagation()}>
         <div className="register-modal-bar">
-          <span className="register-modal-title">THE RECOGNITION OFFICE · 赞美服务登记 / Session Registration</span>
+          <span className="register-modal-title">
+            <span className="recognition-wordmark">The Recognition Office</span>
+            {' · 赞美服务登记 / Session Registration'}
+          </span>
           <button className="pdf-close-btn" onClick={onClose}>✕</button>
         </div>
         {done ? (
@@ -542,7 +541,7 @@ function RegisterPage({ onClose, onRegistered }) {
           </div>
         ) : (
           <form className="register-form" onSubmit={handleSubmit}>
-            <label className="register-label">请输入您的姓名（用于赞美服务） / Enter your name for your session</label>
+            <label className="register-label">请输入您的姓名（用于赞美服务） / Enter your name for your Recognition Session</label>
             <input
               className="register-input"
               type="text"
@@ -609,10 +608,14 @@ function QueueBoard({ queue, isAdmin, callNext, admitCurrent, connected, queueEr
       {/* Now Serving */}
       <div className="queue-now-serving">
         <div style={{ marginBottom: 12, background: '#ff00ff', padding: 12, width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.5em', fontSize: '0.9em', color: '#555' }}>
-          <div className="queue-now-label">WELCOME TO THE RECOGNITION OFFICE!</div>
+          <div className="queue-now-label">
+            {'WELCOME TO '}
+            <span className="recognition-wordmark">The Recognition Office</span>
+            !
+          </div>
           <div className="queue-now-clock">{nowTime}</div>
         </div>
-        <div className="queue-now-label">NOW PRAISING · 正在赞美</div>
+        <div className="queue-now-label">NOW CALLING · 正在赞美</div>
         {current ? (
           <>
             <div className="queue-now-code" style={{ fontSize: '6rem' }}>{current.code}</div>
@@ -709,19 +712,15 @@ function SiteHeader({ t }) {
 
 // ─── SiteNav ──────────────────────────────────────────────────────────────────
 const NAV_QUEUE = 'queue';
-const NAV_CONSULTANTS = 1;
-const NAV_TEAM = 5;
-const NAV_ABOUT = 9;
+const NAV_CONSULTANTS_PATH = '/consultants';
+const NAV_TEAM_PATH = '/team';
+const NAV_ABOUT_PATH = '/about';
 const NAV_PATHS = [
   '/',
   '/consultants',
   '/daily-praises',
-  '/encouragement-radio',
-  '/plans',
   '/team',
   '/support',
-  '/help',
-  '/profile',
   '/about',
 ];
 
@@ -745,10 +744,11 @@ function navFromPath(pathname) {
 }
 
 function SiteNav({ t, activeNav, onNavClick }) {
+  const navItems = t.navItems.slice(0, NAV_PATHS.length);
   return (
     <nav className="site-nav">
       <span className="greeting">{t.greeting}</span>
-      {t.navItems.map((item, i) => (
+      {navItems.map((item, i) => (
         <a
           key={i}
           className={`nav-item${activeNav === i ? ' active' : ''}`}
@@ -769,8 +769,17 @@ function SiteNav({ t, activeNav, onNavClick }) {
 function HeroBanner({ t }) {
   return (
     <div className="hero-banner">
-      <span className="hero-prefix">{t.heroPrefix}</span>
-      <span className="hero-brand">THE RECOGNITION OFFICE</span>
+      <div className="hero-stack">
+        <span className="hero-prefix">{t.heroPrefix}</span>
+        <div className="hero-title-row">
+          <img
+            className="hero-title-logo"
+            src="/logo/logo.png"
+            alt="Recognition Office logo"
+          />
+          <span className="hero-brand recognition-wordmark">The Recognition Office</span>
+        </div>
+      </div>
     </div>
   );
 }
@@ -816,15 +825,6 @@ function MemberCol({ title, profiles, lang }) {
     <div className="member-col">
       <div className="member-col-header">{title}</div>
       {profiles.map((p, i) => <ProfileCard key={i} p={p} lang={lang} />)}
-    </div>
-  );
-}
-
-// ─── VertCol ──────────────────────────────────────────────────────────────────
-function VertCol({ text }) {
-  return (
-    <div className="vert-col">
-      <div className="vert-text">{text}</div>
     </div>
   );
 }
@@ -1162,9 +1162,10 @@ export default function App() {
   const t = T[lang];
   const toggleLang = () => setLang(l => (l === 'zh' ? 'en' : 'zh'));
 
-  const isConsultants  = activeNav === NAV_CONSULTANTS;
-  const isTeam         = activeNav === NAV_TEAM;
-  const isAbout        = activeNav === NAV_ABOUT;
+  const activePath = pathFromNav(activeNav);
+  const isConsultants  = activePath === NAV_CONSULTANTS_PATH;
+  const isTeam         = activePath === NAV_TEAM_PATH;
+  const isAbout        = activePath === NAV_ABOUT_PATH;
   const isRegistration = activeNav === NAV_QUEUE;
 
   function navigateTo(nav) {
@@ -1259,9 +1260,7 @@ export default function App() {
       <div className="main-layout">
         <BurgerAd t={t} />
         <MemberCol title={t.femaleCol} profiles={FEMALE_PROFILES} lang={lang} />
-        <VertCol text={t.vertLeft} />
         {centerContent()}
-        <VertCol text={t.vertRight} />
         <MemberCol title={t.maleCol} profiles={MALE_PROFILES} lang={lang} />
         <BurgerAd t={t} />
       </div>

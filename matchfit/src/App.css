@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;700;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;600;700;800&family=Bungee&family=Noto+Sans+SC:wght@400;700;900&family=ZCOOL+KuaiLe&display=swap');
 @import "tailwindcss";
 @import "@autofiction/ui/theme.css";
 
@@ -108,26 +108,35 @@ a { text-decoration: none; color: inherit; cursor: pointer; }
 
 /* ─── HERO BANNER ────────────────────────────────────────── */
 .hero-banner {
-  @apply flex items-baseline justify-center gap-4;
+  @apply flex items-center justify-center;
   background: linear-gradient(90deg, var(--color-hero-red-dark) 0%, var(--color-hero-red) 40%, #ee1111 50%, var(--color-hero-red) 60%, var(--color-hero-red-dark) 100%);
   padding: 14px 24px;
   border-bottom: 5px solid var(--color-hero-red-deeper);
+}
+.hero-stack {
+  @apply flex flex-col items-center;
+  gap: 6px;
   line-height: 1;
 }
 .hero-prefix {
-  font-size: 3.1rem; font-weight: 900; color: #fff;
+  font-size: 1.45rem; font-weight: 900; color: #fff;
   text-shadow: 3px 3px 0 #660000; letter-spacing: 0.05em;
+  text-align: center;
 }
+.hero-title-row { @apply flex items-center justify-center; gap: 16px; flex-wrap: nowrap; }
+.hero-title-logo { height: 54px; width: auto; object-fit: contain; }
 .hero-brand {
-  font-size: 3.6rem; font-weight: 900; color: var(--color-accent-gold);
+  font-size: 3.2rem; font-weight: 900; color: var(--color-accent-gold);
   font-style: italic; letter-spacing: 0.04em;
   text-shadow: 3px 3px 0 #885500, 0 0 30px rgba(255,220,0,0.5);
+  text-align: center;
+  white-space: nowrap;
 }
 
 /* ─── MAIN LAYOUT ────────────────────────────────────────── */
 .main-layout {
   display: grid;
-  grid-template-columns: 190px 162px 70px 1fr 70px 162px 190px;
+  grid-template-columns: 190px 162px 1fr 162px 190px;
   gap: 2px; background: var(--color-border-gold); align-items: stretch;
 }
 
@@ -713,4 +722,277 @@ a { text-decoration: none; color: inherit; cursor: pointer; }
 
 .site--queue-focus .queue-ticket-time {
   font-size: clamp(13px, 1.4vw, 24px);
+}
+
+/* ─── Y2K MARKET REMIX THEME OVERRIDES ─────────────────────────────────── */
+:root {
+  --font-portal: "Baloo 2", "Noto Sans SC", "Microsoft YaHei", sans-serif;
+  --font-display: "Bungee", "ZCOOL KuaiLe", "Noto Sans SC", cursive;
+  --font-accent: "ZCOOL KuaiLe", "Baloo 2", "Noto Sans SC", sans-serif;
+  --font-wordmark: "MonteCarlo", "Brush Script MT", cursive;
+
+  --color-portal-dark: #0353ad;
+  --color-portal-header-from: #0a5ac7;
+  --color-portal-header-to: #fe4fd5;
+  --color-portal-bar-border: #00bfdc;
+  --color-portal-link: #fdf96f;
+  --color-portal-charge: #58ffeb;
+
+  --color-accent-gold: #ffe01f;
+  --color-accent-gold-light: #fff98d;
+  --color-accent-gold-dark: #ff8f00;
+  --color-border-gold: #14dbb3;
+
+  --color-hero-red: #ff2d66;
+  --color-hero-red-dark: #e4004d;
+  --color-hero-red-deeper: #93003e;
+
+  --color-text-ink: #101749;
+  --color-text-navy: #0d2f82;
+  --color-text-blue: #0074cf;
+}
+
+.recognition-wordmark {
+  font-family: var(--font-wordmark);
+  font-weight: 400;
+  letter-spacing: 0.015em;
+  text-transform: none;
+  font-style: normal;
+  text-shadow:
+    0 0 3px rgba(255, 0, 0, 0.9),
+    0 0 9px rgba(255, 0, 0, 0.75),
+    0 0 18px rgba(255, 40, 40, 0.65);
+}
+
+.hero-brand.recognition-wordmark,
+.register-modal-title .recognition-wordmark,
+.queue-now-label .recognition-wordmark {
+  font-family: var(--font-wordmark);
+}
+
+body {
+  font-family: var(--font-portal);
+  background:
+    radial-gradient(circle at 16% 22%, rgba(255, 255, 255, 0.55) 0 2px, transparent 3px),
+    radial-gradient(circle at 80% 14%, rgba(255, 255, 255, 0.34) 0 3px, transparent 4px),
+    radial-gradient(circle at 36% 70%, rgba(255, 208, 246, 0.48) 0 26px, transparent 27px),
+    linear-gradient(140deg, #0f79d2 0%, #5a41de 38%, #a73adf 67%, #ff57b2 100%);
+  background-attachment: fixed;
+  color: #12174f;
+}
+
+.site {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.78), rgba(255, 255, 255, 0.88));
+  box-shadow: 0 0 0 3px #85fcff, 0 0 0 8px rgba(255, 71, 175, 0.7), 0 24px 50px rgba(60, 25, 120, 0.46);
+}
+
+.login-bar {
+  background: linear-gradient(90deg, #00b4e7 0%, #5f6df8 44%, #ff5fb8 100%);
+  border-bottom: 2px solid #fef272;
+  font-family: var(--font-accent);
+}
+
+.login-input {
+  border: 1px solid #3ee5d8;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #ffffff, #ecf8ff);
+}
+
+.login-btn, .register-btn, .lang-toggle, .burger-btn, .queue-admin-btn, .view-pdf-btn {
+  border-radius: 999px;
+  font-family: var(--font-display);
+  letter-spacing: 0.04em;
+  box-shadow: 0 3px 0 rgba(0, 0, 0, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.75);
+}
+
+.site-header {
+  background:
+    linear-gradient(90deg, #0f83d8 0%, #2ad8cb 22%, #ff79ca 58%, #ffa44a 100%);
+  border-bottom: 4px solid #feef49;
+}
+
+.logo-image {
+  filter: drop-shadow(0 0 10px rgba(255, 247, 134, 0.7));
+}
+
+.tagline-1, .tagline-2, .hero-prefix, .hero-brand, .stories-title, .service-title, .archive-project-title {
+  font-family: var(--font-display);
+}
+
+.tagline-1 {
+  color: #fff389;
+  text-shadow: 0 2px 0 #f545a8, 0 0 14px rgba(255, 228, 102, 0.8);
+}
+
+.tagline-2 {
+  color: #e6fffb;
+  text-shadow: 0 1px 0 rgba(0, 67, 129, 0.8);
+}
+
+.site-nav {
+  background: linear-gradient(90deg, #ffffff, #ffe8f6 50%, #e3fbff);
+  border-bottom: 3px solid #16e4d8;
+}
+
+.greeting, .nav-item, .archive-tab {
+  border-radius: 999px;
+  margin: 2px;
+  border: 1px solid rgba(14, 136, 210, 0.35);
+}
+
+.nav-item.active, .archive-tab.active {
+  background: linear-gradient(180deg, #fff6a1, #ffba47);
+  color: #97105e;
+}
+
+.hero-banner {
+  background: linear-gradient(90deg, #ff629f 0%, #ff9447 27%, #ffde47 50%, #3bd8bf 70%, #47a4ff 100%);
+  border-bottom: 5px solid #ff50a8;
+}
+
+.hero-prefix, .hero-brand {
+  color: #fff;
+  text-shadow: 0 2px 0 #dd2579, 0 0 22px rgba(255, 248, 144, 0.95);
+}
+.hero-title-logo {
+  filter: drop-shadow(0 0 10px rgba(255, 248, 144, 0.72));
+}
+
+.main-layout {
+  background: linear-gradient(180deg, #2ce8d3, #11a6df);
+}
+
+.outer-ad {
+  background: linear-gradient(180deg, #022d71 0%, #5b2fd8 45%, #ff4db4 100%);
+}
+
+.burger-logo {
+  border-radius: 12px;
+  border-color: #89fff8;
+  background: linear-gradient(180deg, #ff70bf, #9f2ce0);
+}
+
+.burger-promo {
+  text-shadow: -2px -2px 0 #f6229f, 2px -2px 0 #f6229f, -2px 2px 0 #f6229f, 2px 2px 0 #f6229f, 0 0 16px rgba(255, 248, 126, 0.95);
+}
+
+.member-col,
+.archive-section,
+.service-box,
+.queue-col,
+.archive-doc,
+.archive-iframe-card,
+.archive-glb-card,
+.popup {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.97), rgba(243, 253, 255, 0.94));
+}
+
+.member-col,
+.stories-box,
+.service-box,
+.archive-section,
+.queue-col,
+.register-modal,
+.pdf-modal,
+.video-modal,
+.image-modal {
+  border: 2px solid #93f7ff;
+  box-shadow: inset 0 0 0 2px rgba(255, 134, 197, 0.35), 0 7px 18px rgba(53, 37, 123, 0.23);
+}
+
+.member-col-header,
+.stories-title,
+.archive-header,
+.pdf-modal-bar,
+.register-modal-bar,
+.queue-col-header,
+.queue-admin-bar,
+.popup-head {
+  background: linear-gradient(90deg, #20b8eb 0%, #4f66e8 38%, #ff5fba 100%);
+  color: #fffaf0;
+}
+
+.profile-photo,
+.story-photo,
+.archive-thumb {
+  border: 2px solid #fff;
+  box-shadow: 0 0 0 2px #ff77cb, 0 0 0 4px #6cf8eb;
+  border-radius: 10px;
+}
+
+.profile-name,
+.archive-card-title,
+.queue-ticket-code,
+.service-title {
+  color: #d31671;
+}
+
+.profile-desc,
+.archive-card-desc,
+.queue-ticket-name,
+.story-text {
+  color: #17479e;
+}
+
+.vert-col {
+  background: linear-gradient(180deg, #ecfcff, #ffe7f8);
+}
+
+.vert-text {
+  font-family: var(--font-display);
+  color: #ff2d8a;
+  text-shadow: 0 1px 0 #fff, 0 0 10px rgba(73, 183, 255, 0.65);
+}
+
+.archive-body,
+.center-content,
+.queue-columns,
+.services-row {
+  background: linear-gradient(180deg, #8df0ff 0%, #ffdaf2 100%);
+}
+
+.video-thumb,
+.glb-viewer {
+  border: 2px solid #72edff;
+  border-radius: 10px;
+  box-shadow: inset 0 0 20px rgba(255, 120, 194, 0.32);
+}
+
+.pdf-overlay,
+.register-overlay {
+  background: rgba(30, 8, 69, 0.8);
+}
+
+.register-input {
+  border-bottom: 4px solid #29d5dc;
+  color: #c9006b;
+}
+
+.queue-now-serving {
+  background: linear-gradient(135deg, #0e78d5 0%, #6945e1 52%, #ff5eb8 100%);
+  border-bottom: 4px solid #fff07d;
+}
+
+.queue-now-code {
+  color: #fff47e;
+  text-shadow: 0 2px 0 #ff2f99, 0 0 18px rgba(255, 251, 171, 0.88);
+}
+
+.queue-now-name,
+.queue-now-counter,
+.queue-now-clock {
+  color: #f5fbff;
+}
+
+.queue-admin-btn--admit {
+  background: linear-gradient(180deg, #50eec5, #11b78b);
+  border: 1px solid #098a69;
+}
+
+.popup {
+  border-color: #ff62bc;
+}
+
+.popup-close {
+  border-color: #ff62bc;
 }
