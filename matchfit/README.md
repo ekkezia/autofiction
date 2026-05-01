@@ -18,7 +18,9 @@ To switch the calling system into queue-only fullscreen mode:
 
 ## Queue Server Port
 
-The queue Socket.IO server in `server/ticketing/queue.js` should use:
+The queue Socket.IO server in `server/queue.js` should use:
 
 - `HTTP_PORT = 4002`
 - `TD_OSC_PORT = 9000`
+
+Run with `node queue.js`

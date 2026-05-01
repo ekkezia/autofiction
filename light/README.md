@@ -51,7 +51,7 @@ Set the host name in [config.js](/Users/ek/Documents/GitHub/autofiction/light/co
 
 ```js
 window.LIGHT_CONFIG = {
-  missName: "EMILY",
+  missName: "Yimeng",
 };
 ```
 

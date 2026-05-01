@@ -1,4 +1,4 @@
-// light/server.js — Lighting control server
+// server/light.js — Lighting control server
 // Browser → Socket.IO (HTTP 4003) → OSC UDP → TouchDesigner (9001)
 
 const http  = require('http');
@@ -10,6 +10,7 @@ const { Server } = require('socket.io');
 const HTTP_PORT   = 4003;
 const TD_IP       = '127.0.0.1';
 const TD_OSC_PORT = 9001;
+const LIGHT_DIR = path.resolve(__dirname, '..', 'light');
 
 const osc = new Client(TD_IP, TD_OSC_PORT);
 
@@ -24,7 +25,7 @@ function sendOSC(address, value) {
 
 const httpServer = http.createServer((req, res) => {
   if (req.url === '/' || req.url === '/index.html') {
-    fs.readFile(path.join(__dirname, 'index.html'), (err, data) => {
+    fs.readFile(path.join(LIGHT_DIR, 'index.html'), (err, data) => {
       if (err) { res.writeHead(500); res.end('Error'); return; }
       res.writeHead(200, { 'Content-Type': 'text/html' });
       res.end(data);
@@ -33,7 +34,7 @@ const httpServer = http.createServer((req, res) => {
   }
 
   if (req.url === '/config.js') {
-    fs.readFile(path.join(__dirname, 'config.js'), (err, data) => {
+    fs.readFile(path.join(LIGHT_DIR, 'config.js'), (err, data) => {
       if (err) { res.writeHead(500); res.end('Error'); return; }
       res.writeHead(200, { 'Content-Type': 'application/javascript; charset=utf-8' });
       res.end(data);

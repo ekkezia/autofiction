@@ -4,6 +4,7 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
+    "start": "vite",
     "dev": "sh -c 'node server/ticketing/queue.js & q=$!; trap \"kill $q 2>/dev/null || true\" EXIT INT TERM; vite'",
     "dev:web": "vite",
     "dev:queue": "node server/ticketing/queue.js",
@@ -11,9 +12,10 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@autofiction/ui": "*",
+    "@autofiction/ui": "file:../ui",
     "@react-three/drei": "^9.105.0",
     "@react-three/fiber": "^8.16.0",
+    "mqtt": "^5.15.0",
     "react": "^18.3.0",
     "react-dom": "^18.3.0",
     "react-pdf": "^9.1.0",
