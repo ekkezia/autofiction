@@ -1,0 +1,24 @@
+:root {
+  --font-portal: "Noto Sans SC", "Segoe UI", -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "SFMono-Regular", Menlo, Consolas, "Liberation Mono", monospace;
+
+  --color-portal-dark: #1b3d82;
+  --color-portal-header-from: #00008c;
+  --color-portal-header-to: #1a77ff;
+  --color-portal-bar-border: #0a2f63;
+  --color-portal-link: #f6f16a;
+  --color-portal-charge: #ffd26a;
+
+  --color-accent-gold: #ffcc00;
+  --color-accent-gold-light: #ffee44;
+  --color-accent-gold-dark: #cc8800;
+  --color-border-gold: #b88800;
+
+  --color-hero-red: #cc0000;
+  --color-hero-red-dark: #990000;
+  --color-hero-red-deeper: #660000;
+
+  --color-text-ink: #1b1b1b;
+  --color-text-navy: #103b8a;
+  --color-text-blue: #1a61d8;
+}

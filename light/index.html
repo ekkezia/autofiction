@@ -548,7 +548,7 @@
   </div>
 
   <script>
-    const socket = io();
+    const socket = io(window.LIGHT_CONFIG?.socketUrl || `http://${location.hostname}:4003`);
 
     const state = { spotlight: false, timer: false, panic: false };
 

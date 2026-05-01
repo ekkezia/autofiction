@@ -105,7 +105,7 @@ void setup_wifi() {
 
 void setup() {
   Serial.begin(115200);
-  while (!Serial) {}
+  // while (!Serial) {}
 
   Serial.println("Booting...");
 
@@ -120,8 +120,8 @@ void setup() {
   delay(100);
 
   // Very simple test
-  printer.println(F("BOOT TEST"));
-  printer.feed(2);
+  // printer.println(F("BOOT TEST"));
+  // printer.feed(2);
 
   setup_wifi();
 }

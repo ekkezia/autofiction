@@ -234,7 +234,7 @@ export default function AdminMode({ tickets, adminInput, setAdminInput, adminCtr
               )}
             </div>
             <div style={{marginTop:8,fontSize:9,color:"rgba(255,245,235,.38)"}}>
-              Scans `MATCHFIT-1234` QR codes and auto-verifies with selected counter ({adminCtr}).
+              Scans `THE RECOGNITION OFFICE-1234` QR codes and auto-verifies with selected counter ({adminCtr}).
               {!connected && " Socket is offline."}
             </div>
           </div>

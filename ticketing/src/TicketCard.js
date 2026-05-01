@@ -106,7 +106,7 @@ export default function TicketCard({ ticket, isPrinting, dragProps, style }) {
             background:"#FFF5EB", border:"1px solid rgba(196,30,58,.12)",
             borderRadius:7, overflow:"hidden", flexShrink:0, padding:3
           }}>
-            <QR value={`MATCHFIT-${ticket.number}`} size={74} />
+            <QR value={`THE RECOGNITION OFFICE-${ticket.number}`} size={74} />
           </div>
           <div style={{flex:1,minWidth:0}}>
             <TRow l="COUNTER" v={ticket.counter} vs={{
