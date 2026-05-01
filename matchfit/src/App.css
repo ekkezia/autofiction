@@ -996,3 +996,128 @@ body {
 .popup-close {
   border-color: #ff62bc;
 }
+
+/* ─── GLOBAL GRADIENT MOTION ────────────────────────────────────────────── */
+@keyframes gradient-pan {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes gradient-diagonal {
+  0% { background-position: 0% 0%; }
+  50% { background-position: 100% 100%; }
+  100% { background-position: 0% 0%; }
+}
+
+body,
+.site,
+.login-bar,
+.login-input,
+.site-header,
+.site-nav,
+.greeting,
+.nav-item.active,
+.archive-tab,
+.archive-tab.active,
+.hero-banner,
+.main-layout,
+.outer-ad,
+.burger-logo,
+.login-btn,
+.lang-toggle,
+.register-btn,
+.view-pdf-btn,
+.register-submit,
+.register-done-btn,
+.member-col,
+.archive-section,
+.service-box,
+.queue-col,
+.archive-doc,
+.archive-iframe-card,
+.archive-glb-card,
+.popup,
+.member-col-header,
+.stories-title,
+.archive-header,
+.pdf-modal-bar,
+.register-modal-bar,
+.queue-col-header,
+.queue-admin-bar,
+.vert-col,
+.archive-body,
+.center-content,
+.queue-columns,
+.services-row,
+.queue-now-serving,
+.queue-admin-btn--call,
+.queue-admin-btn--admit {
+  background-size: 220% 220%;
+  animation: gradient-pan 14s ease-in-out infinite;
+}
+
+.hero-banner,
+.site-header,
+.queue-now-serving {
+  background-size: 260% 260%;
+  animation-duration: 10s;
+}
+
+body,
+.main-layout,
+.archive-body,
+.center-content,
+.queue-columns,
+.services-row {
+  animation-name: gradient-diagonal;
+  animation-duration: 22s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body,
+  .site,
+  .login-bar,
+  .login-input,
+  .site-header,
+  .site-nav,
+  .greeting,
+  .nav-item.active,
+  .archive-tab,
+  .archive-tab.active,
+  .hero-banner,
+  .main-layout,
+  .outer-ad,
+  .burger-logo,
+  .login-btn,
+  .lang-toggle,
+  .register-btn,
+  .view-pdf-btn,
+  .register-submit,
+  .register-done-btn,
+  .member-col,
+  .archive-section,
+  .service-box,
+  .queue-col,
+  .archive-doc,
+  .archive-iframe-card,
+  .archive-glb-card,
+  .popup,
+  .member-col-header,
+  .stories-title,
+  .archive-header,
+  .pdf-modal-bar,
+  .register-modal-bar,
+  .queue-col-header,
+  .queue-admin-bar,
+  .vert-col,
+  .archive-body,
+  .center-content,
+  .queue-columns,
+  .services-row,
+  .queue-now-serving,
+  .queue-admin-btn--call,
+  .queue-admin-btn--admit {
+    animation: none !important;
+  }
+}
