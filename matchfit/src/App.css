@@ -140,21 +140,52 @@ a { text-decoration: none; color: inherit; cursor: pointer; }
   gap: 2px; background: var(--color-border-gold); align-items: stretch;
 }
 
+@media (max-width: 1024px) {
+  body {
+    min-width: 0;
+  }
+
+  .main-layout {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 8px;
+  }
+
+  /* Put the main center content first, then side columns below it. */
+  .main-layout > :nth-child(3) { order: 1; }
+  .main-layout > :nth-child(2) { order: 2; }
+  .main-layout > :nth-child(4) { order: 3; }
+  .main-layout > :nth-child(1) { order: 4; }
+  .main-layout > :nth-child(5) { order: 5; }
+}
+
 /* ─── OUTER BURGER ADS ───────────────────────────────────── */
 .outer-ad {
   @apply relative overflow-hidden flex flex-col items-center;
   background: linear-gradient(180deg, #0a0600 0%, #180d00 35%, #2a1500 65%, #150800 100%);
   padding: 10px 8px 14px; gap: 10px;
 }
+
+@keyframes ad-flicker {
+  0%, 78%, 84%, 92%, 100% { opacity: 1; }
+  80% { opacity: 0.7; }
+  82% { opacity: 0.92; }
+  88% { opacity: 0.74; }
+  90% { opacity: 0.96; }
+}
+
 .outer-ad::before {
   content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 45%;
   background: radial-gradient(ellipse at 50% 100%, rgba(255,80,0,0.55) 0%, rgba(180,30,0,0.25) 50%, transparent 80%);
   pointer-events: none;
+  animation: ad-flicker 5.8s steps(1, end) infinite;
 }
 .outer-ad::after {
   content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 8px;
   background: linear-gradient(90deg, transparent, #ff6600, #ffaa00, #ff6600, transparent);
   opacity: 0.8;
+  animation: ad-flicker 6.4s steps(1, end) infinite;
 }
 .burger-logo {
   @apply text-center w-full font-black relative;
@@ -1134,6 +1165,11 @@ body,
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .outer-ad::before,
+  .outer-ad::after {
+    animation: none !important;
+  }
+
   body,
   .site,
   .login-bar,
