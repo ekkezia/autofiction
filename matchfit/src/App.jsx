@@ -285,7 +285,7 @@ const T = {
     tagline2: 'Here, your efforts are seen, praised, and validated.',
     greeting: '欢迎光临',
     navItems: ['认可首页', '顾问团队', '今日赞词', '鼓励电台', '服务方案', '团队介绍', '在线客服', '帮助中心', '我的档案', '关于我们'],
-    heroPrefix: '想被真诚夸奖，就来',
+    heroPrefix: '欢迎来到',
     femaleCol: '本周值班赞美顾问',
     maleCol: '今日高光客户',
     burgerStat: '认可度 100%',
