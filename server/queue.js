@@ -8,6 +8,7 @@ require('dotenv').config({ path: '.env.local' });
 const net = require('net');
 const http = require('http');
 const dgram = require('dgram');
+const path = require('path');
 const { exec } = require('child_process');
 const { Server } = require('socket.io');
 
@@ -20,6 +21,7 @@ const CALL_WORD_RATE_JITTER = 12; // random +/- rate per word
 const CALL_WORD_PITCH_BASE = 50; // macOS speech base pitch command center
 const CALL_WORD_PITCH_JITTER = 7; // random +/- pitch per word
 const CALL_LOOP_GAP_MS = 1200;
+const ANNOUNCEMENT_AUDIO_PATH = path.resolve(__dirname, '..', 'matchfit', 'public', 'audio', 'announcement.mp3');
 
 let seq = 1000;
 const queue = new Map(); // code → ticket
@@ -69,6 +71,7 @@ function stopAudio() {
 function startCallingLoop(ticket) {
 	callingCode = ticket.code;
 	const phrase = buildCallPhrase(ticket);
+	let hasPlayedAnnouncement = false;
 	console.log('Announcing:', phrase);
 
 	function speakPhrase() {
@@ -76,7 +79,11 @@ function startCallingLoop(ticket) {
 		const pitch = CALL_WORD_PITCH_BASE + randomInt(-CALL_WORD_PITCH_JITTER, CALL_WORD_PITCH_JITTER);
 		const rate = CALL_VOICE_RATE + randomInt(-CALL_WORD_RATE_JITTER, CALL_WORD_RATE_JITTER);
 		const text = `[[pbas ${pitch}]] ${phrase}`;
-		const cmd = `say -v "Fred" -r ${rate} ${shellQuote(text)}`;
+		const sayCmd = `say -v "Fred" -r ${rate} ${shellQuote(text)}`;
+		const cmd = hasPlayedAnnouncement
+			? sayCmd
+			: `command -v afplay >/dev/null 2>&1 && [ -f ${shellQuote(ANNOUNCEMENT_AUDIO_PATH)} ] && afplay ${shellQuote(ANNOUNCEMENT_AUDIO_PATH)}; ${sayCmd}`;
+		hasPlayedAnnouncement = true;
 
 		audioProcess = exec(cmd, () => {
 			if (callingCode !== ticket.code) return;
@@ -125,6 +132,10 @@ function emitSnapshot() {
 
 function currentCalling() {
 	return Array.from(queue.values()).find((t) => t.status === 'calling') || null;
+}
+
+function currentInSession() {
+	return Array.from(queue.values()).find((t) => t.status === 'in_session') || null;
 }
 
 // Oldest waiting = smallest timestamp
@@ -181,22 +192,44 @@ io.on('connection', (socket) => {
 		console.log('Calling:', updated);
 	});
 
-	// Admin: admit current calling → admitted
-	// Audio generation: stop the call loop
-	socket.on('admit_current', () => {
+	// Admin: move current calling → in_session
+	// Audio generation: stop the call loop once session begins
+	socket.on('enter_session', () => {
 		const calling = currentCalling();
 		if (!calling) {
-			socket.emit('admit_error', {
+			socket.emit('enter_error', {
 				reason: 'No one is currently being called.',
 			});
 			return;
 		}
-		const updated = { ...calling, status: 'admitted' };
+		const updated = { ...calling, status: 'in_session' };
 		queue.set(calling.code, updated);
+		emitSnapshot();
+		notifyTD('/matchfit/session', `${updated.code} ${updated.name}`);
+		stopAudio();
+		console.log('In Session:', updated);
+	});
+
+	// Admin: move current in_session → completed
+	socket.on('complete_session', () => {
+		const inSession = currentInSession();
+		if (!inSession) {
+			socket.emit('complete_error', {
+				reason: 'No one is currently in session.',
+			});
+			return;
+		}
+		const updated = { ...inSession, status: 'completed' };
+		queue.set(inSession.code, updated);
 		emitSnapshot();
 		notifyTD('/matchfit/admitted', `${updated.code} ${updated.name}`);
 		stopAudio();
-		console.log('Admitted:', updated);
+		console.log('Completed:', updated);
+	});
+
+	// Backward compatibility for older clients.
+	socket.on('admit_current', () => {
+		socket.emit('complete_error', { reason: 'Use complete_session for current workflow.' });
 	});
 
 	socket.on('get_queue', () => {

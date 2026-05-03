@@ -624,7 +624,7 @@ a { text-decoration: none; color: inherit; cursor: pointer; }
 .queue-now-counter { font-size: 12px; color: #aaccff; margin-top: 4px; }
 .queue-now-empty { font-size: 1.2rem; color: rgba(255,255,255,0.35); padding: 10px 0; }
 
-.queue-columns { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 2px; background: var(--color-border-gold); padding: 2px; flex: 1; }
+.queue-columns { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 2px; background: var(--color-border-gold); padding: 2px; flex: 1; }
 
 .queue-col { background: #fff; display: flex; flex-direction: column; }
 .queue-col-header {
@@ -633,7 +633,9 @@ a { text-decoration: none; color: inherit; cursor: pointer; }
 }
 .queue-col--waiting  .queue-col-header { background: linear-gradient(180deg, #eef3ff, #dde8ff); color: var(--color-portal-dark); border-bottom: 2px solid var(--color-portal-dark); }
 .queue-col--calling  .queue-col-header { background: linear-gradient(180deg, #ffee88, var(--color-accent-gold)); color: #660000; border-bottom: 2px solid var(--color-hero-red); }
-.queue-col--admitted .queue-col-header { background: linear-gradient(180deg, #e8ffe8, #cceecc); color: #004400; border-bottom: 2px solid #228822; }
+.queue-col--session  .queue-col-header { background: linear-gradient(180deg, #e8ffe8, #cceecc); color: #004400; border-bottom: 2px solid #228822; }
+.queue-col--completed .queue-col-header,
+.queue-col--admitted .queue-col-header { background: linear-gradient(180deg, #f4f4f4, #d8d8d8); color: #333; border-bottom: 2px solid #888; }
 
 .queue-col-count { background: rgba(0,0,0,0.12); border-radius: 10px; padding: 1px 7px; font-size: 10px; }
 .queue-col-body  { flex: 1; overflow-y: auto; max-height: 340px; }
@@ -704,6 +706,11 @@ a { text-decoration: none; color: inherit; cursor: pointer; }
   color: #fff; border: 1px solid #0944aa;
 }
 .queue-admin-btn--call:not(:disabled):hover  { background: linear-gradient(180deg, #66aaff, #2255bb); }
+.queue-admin-btn--enter {
+  background: linear-gradient(180deg, #ffdd66, #ffaa22);
+  color: #5a2c00; border: 1px solid #cc8400;
+}
+.queue-admin-btn--enter:not(:disabled):hover { background: linear-gradient(180deg, #ffe07a, #ffb84d); }
 .queue-admin-btn--admit {
   background: linear-gradient(180deg, #44bb44, #228822);
   color: #fff; border: 1px solid #116611;
@@ -713,7 +720,7 @@ a { text-decoration: none; color: inherit; cursor: pointer; }
 /* REGISTRATION nav item accent */
 .nav-item--queue { color: var(--color-hero-red) !important; font-weight: 900 !important; border-left: 2px solid var(--color-accent-gold) !important; }
 
-/* ─── QUEUE-ONLY FULLSCREEN MODE (R key) ───────────────────────────────── */
+/* ─── QUEUE-ONLY FOCUS MODE (R key, no browser fullscreen API) ─────────── */
 .site.site--queue-focus {
   min-width: 0;
   width: 100vw;

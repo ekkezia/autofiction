@@ -66,8 +66,7 @@ function startTimer() {
     io.emit('timer_tick', seconds);
     if (seconds <= 0) {
       stopTimer();
-      state.timer = false;
-      sendOSC('/light/service', 0);
+      // Keep path light on; operator must turn it off manually.
       io.emit('timer_complete');
       io.emit('state', { ...state, seconds });
     }

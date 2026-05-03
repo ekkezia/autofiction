@@ -307,7 +307,7 @@ const T = {
       digitalResearch: '数字研究',
     },
     svc1Title: '情绪认可 · 即时反馈',
-    svc1: ['1对1赞美咨询', '把你的努力说成可被看见的价值', '针对低落时刻提供情绪托举'],
+    svc1: ['', '把你的努力说成可被看见的价值', '针对低落时刻提供情绪托举'],
     svc2Title: '会员尊享服务',
     svc2: ['成就复盘与高光提炼', '定制“夸奖脚本”音频', '阶段性自信维护计划'],
     popupBrand: 'Recognition Lounge 今日菜单',
@@ -454,20 +454,37 @@ function useQueue() {
   const socketRef              = useRef(null);
 
   useEffect(() => {
-    const s = io(QUEUE_SERVER, { transports: ['websocket', 'polling'] });
+    const s = io(QUEUE_SERVER, {
+      transports: ['websocket', 'polling'],
+      reconnection: true,
+      reconnectionAttempts: Infinity,
+      reconnectionDelay: 500,
+      reconnectionDelayMax: 2000,
+    });
     socketRef.current = s;
-    s.on('connect',       () => { setConn(true);  console.log('[queue] connected', s.id); });
+    s.on('connect',       () => {
+      setConn(true);
+      console.log('[queue] connected', s.id);
+      s.emit('get_queue');
+    });
     s.on('disconnect',    () => { setConn(false); console.log('[queue] disconnected'); });
     s.on('connect_error', (e) => { setConn(false); console.error('[queue] connect error:', e.message); });
     s.on('queue_snapshot', setQueue);
     s.on('call_error',  ({ reason }) => { setError(reason); setTimeout(() => setError(null), 3000); });
+    s.on('enter_error', ({ reason }) => { setError(reason); setTimeout(() => setError(null), 3000); });
+    s.on('complete_error', ({ reason }) => { setError(reason); setTimeout(() => setError(null), 3000); });
     s.on('admit_error', ({ reason }) => { setError(reason); setTimeout(() => setError(null), 3000); });
     return () => s.disconnect();
   }, []);
 
   const register = (name) => new Promise((resolve) => {
-    socketRef.current?.emit('register_user', { name });
-    socketRef.current?.once('register_ack', resolve);
+    const s = socketRef.current;
+    if (!s) {
+      resolve(null);
+      return;
+    }
+    s.once('register_ack', resolve);
+    s.emit('register_user', { name });
   });
 
   const callNext = () => {
@@ -475,23 +492,27 @@ function useQueue() {
     socketRef.current?.emit('call_next');
   };
 
-  const admitCurrent = () => {
-    console.log('[queue] admitCurrent — connected:', socketRef.current?.connected);
-    socketRef.current?.emit('admit_current');
+  const enterSession = () => {
+    console.log('[queue] enterSession — connected:', socketRef.current?.connected);
+    socketRef.current?.emit('enter_session');
   };
 
-  return { queue, connected, queueError, register, callNext, admitCurrent };
+  const completeSession = () => {
+    console.log('[queue] completeSession — connected:', socketRef.current?.connected);
+    socketRef.current?.emit('complete_session');
+  };
+
+  return { queue, connected, queueError, register, callNext, enterSession, completeSession };
 }
 
 // ─── RegisterPage ──────────────────────────────────────────────────────────────
 const NEXT_TIMEOUT = 10; // seconds before auto-reset to new registration
 
-function RegisterPage({ onClose, onRegistered }) {
+function RegisterPage({ onClose, onRegistered, onRegister }) {
   const [name, setName]       = useState('');
   const [done, setDone]       = useState(null);
   const [loading, setLoading] = useState(false);
   const [countdown, setCountdown] = useState(NEXT_TIMEOUT);
-  const { register }          = useQueue();
 
   // Auto-countdown after successful registration
   useEffect(() => {
@@ -512,7 +533,11 @@ function RegisterPage({ onClose, onRegistered }) {
     e.preventDefault();
     if (!name.trim() || loading) return;
     setLoading(true);
-    const ticket = await register(name.trim());
+    const ticket = await onRegister(name.trim());
+    if (!ticket) {
+      setLoading(false);
+      return;
+    }
     setDone(ticket);
     setLoading(false);
   }
@@ -577,11 +602,15 @@ function RegisterPage({ onClose, onRegistered }) {
 }
 
 // ─── QueueBoard ────────────────────────────────────────────────────────────────
-function QueueBoard({ queue, isAdmin, callNext, admitCurrent, connected, queueError }) {
+function QueueBoard({ queue, isAdmin, callNext, enterSession, completeSession, connected, queueError }) {
   const calling  = queue.filter(t => t.status === 'calling');
-  const waiting  = queue.filter(t => t.status === 'waiting');
-  const admitted = queue.filter(t => t.status === 'admitted');
-  const current  = calling[0] || null;
+  const waiting  = queue
+    .filter(t => t.status === 'waiting')
+    .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+  const inSession = queue.filter(t => t.status === 'in_session');
+  const completed = queue.filter(t => t.status === 'completed' || t.status === 'admitted');
+  const currentCalling = calling[0] || null;
+  const currentInSession = inSession[0] || null;
   const [nowTime, setNowTime] = useState(() =>
     new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
   );
@@ -603,14 +632,21 @@ function QueueBoard({ queue, isAdmin, callNext, admitCurrent, connected, queueEr
           <button
             className="queue-admin-btn queue-admin-btn--call"
             onClick={callNext}
-            disabled={!connected || !!current || waiting.length === 0}
+            disabled={!connected || !!currentCalling || waiting.length === 0}
           >
             📣 CALL NEXT CLIENT
           </button>
           <button
+            className="queue-admin-btn queue-admin-btn--enter"
+            onClick={enterSession}
+            disabled={!connected || !currentCalling}
+          >
+            ➜ ENTER SESSION
+          </button>
+          <button
             className="queue-admin-btn queue-admin-btn--admit"
-            onClick={admitCurrent}
-            disabled={!connected || !current}
+            onClick={completeSession}
+            disabled={!connected || !currentInSession}
           >
             ✓ COMPLETE SESSION
           </button>
@@ -629,23 +665,24 @@ function QueueBoard({ queue, isAdmin, callNext, admitCurrent, connected, queueEr
           </div>
           <div className="queue-now-clock">{nowTime}</div>
         </div>
-        <div className="queue-now-label">NOW CALLING · 正在赞美</div>
-        {current ? (
+        <div className="queue-now-label">NOW CALLING · 正在呼叫</div>
+        {currentCalling ? (
           <>
-            <div className="queue-now-code" style={{ fontSize: '6rem' }}>{current.code}</div>
-            <div className="queue-now-name">{current.name}</div>
-            <div className="queue-now-counter">Desk {current.counter}</div>
+            <div className="queue-now-code" style={{ fontSize: '6rem' }}>{currentCalling.code}</div>
+            <div className="queue-now-name">{currentCalling.name}</div>
+            <div className="queue-now-counter">Desk {currentCalling.counter}</div>
           </>
         ) : (
           <div className="queue-now-empty">— 暂无服务中 —</div>
         )}
       </div>
 
-      {/* Three columns */}
+      {/* Four columns */}
       <div className="queue-columns">
         <QueueCol title="待 Waiting" tickets={waiting}  accent="waiting"  />
-        <QueueCol title="服务中 In Session"       tickets={calling}  accent="calling"  />
-        <QueueCol title="已完成 Completed"        tickets={admitted} accent="admitted" />
+        <QueueCol title="呼叫中 Calling"          tickets={calling}   accent="calling"   />
+        <QueueCol title="服务中 In Session"       tickets={inSession} accent="session"   />
+        <QueueCol title="已完成 Completed"        tickets={completed} accent="completed" />
       </div>
     </div>
   );
@@ -1171,14 +1208,14 @@ const ADMIN_USER = 'admin';
 const ADMIN_PASS = '1111';
 
 export default function App() {
-  const [lang, setLang]             = useState('zh');
+  const [lang, setLang]             = useState('en');
   const [showPopup, setShowPopup]   = useState(true);
   const [activeNav, setActiveNav]   = useState(() => navFromPath(window.location.pathname));
   const [showRegister, setShowReg]  = useState(false);
   const [isAdmin, setIsAdmin]       = useState(false);
   const [isQueueFocus, setIsQueueFocus] = useState(false);
   const prevNavRef = useRef(0);
-  const { queue, connected, queueError, callNext, admitCurrent } = useQueue();
+  const { queue, connected, queueError, register, callNext, enterSession, completeSession } = useQueue();
   const t = T[lang];
   const toggleLang = () => setLang(l => (l === 'zh' ? 'en' : 'zh'));
 
@@ -1241,7 +1278,7 @@ export default function App() {
   }, [toggleQueueFocus]);
 
   function centerContent() {
-    if (isRegistration) return <QueueBoard queue={queue} isAdmin={isAdmin} callNext={callNext} admitCurrent={admitCurrent} connected={connected} queueError={queueError} />;
+    if (isRegistration) return <QueueBoard queue={queue} isAdmin={isAdmin} callNext={callNext} enterSession={enterSession} completeSession={completeSession} connected={connected} queueError={queueError} />;
     if (isConsultants)  return <ConsultantsContent />;
     if (isTeam)         return <TeamContent />;
     if (isAbout)        return <ArchiveContent t={t} />;
@@ -1252,7 +1289,7 @@ export default function App() {
     return (
       <div className="site site--queue-focus">
         <div className="queue-focus-screen">
-          <QueueBoard queue={queue} isAdmin={isAdmin} callNext={callNext} admitCurrent={admitCurrent} connected={connected} queueError={queueError} />
+          <QueueBoard queue={queue} isAdmin={isAdmin} callNext={callNext} enterSession={enterSession} completeSession={completeSession} connected={connected} queueError={queueError} />
         </div>
       </div>
     );
@@ -1276,6 +1313,7 @@ export default function App() {
         <RegisterPage
           onClose={() => setShowReg(false)}
           onRegistered={() => navigateTo(NAV_QUEUE)}
+          onRegister={register}
         />
       )}
     </div>
