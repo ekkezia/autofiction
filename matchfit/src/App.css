@@ -501,15 +501,38 @@ a { text-decoration: none; color: inherit; cursor: pointer; }
   color: #fff; display: flex; align-items: center; justify-content: space-between;
   padding: 8px 12px; flex-shrink: 0;
 }
-.register-modal-title { font-size: 12px; font-weight: 700; letter-spacing: 0.04em; }
+.register-modal-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.register-modal-logo-icon {
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
 
 .register-form { display: flex; flex-direction: column; align-items: center; padding: 40px 36px; gap: 20px; }
 .register-label { font-size: 14px; font-weight: 700; color: var(--color-portal-dark); letter-spacing: 0.04em; text-align: center; }
+.register-label-wordmark {
+  display: inline-block;
+  height: 1.4em;
+  width: auto;
+  object-fit: contain;
+  vertical-align: -0.15em;
+  margin: 0 4px;
+}
 .register-input {
   width: 100%; font-size: 2rem; font-weight: 900; text-align: center;
   border: none; border-bottom: 3px solid var(--color-portal-dark);
   padding: 8px 0; outline: none; color: var(--color-text-ink);
   background: transparent;
+  text-transform: capitalize;
 }
 .register-input:focus { border-bottom-color: var(--color-hero-red); }
 .register-submit {
@@ -523,7 +546,7 @@ a { text-decoration: none; color: inherit; cursor: pointer; }
 
 .register-done { display: flex; flex-direction: column; align-items: center; padding: 36px; gap: 10px; }
 .register-done-code { font-size: 3.5rem; font-weight: 900; color: var(--color-hero-red); letter-spacing: 0.1em; }
-.register-done-name { font-size: 1.4rem; font-weight: 700; color: var(--color-portal-dark); }
+.register-done-name { font-size: 1.4rem; font-weight: 700; color: var(--color-portal-dark); text-transform: capitalize; }
 .register-done-sub  { font-size: 12px; color: #666; }
 .register-done-meta { display: flex; gap: 20px; font-size: 12px; color: #444; }
 .register-done-btn {
@@ -566,7 +589,7 @@ a { text-decoration: none; color: inherit; cursor: pointer; }
   white-space: nowrap;
 }
 .queue-now-code  { font-size: 3rem; font-weight: 900; letter-spacing: 0.08em; color: var(--color-accent-gold); line-height: 1; text-shadow: 2px 2px 0 rgba(0,0,0,0.3); }
-.queue-now-name  { font-size: 1.2rem; font-weight: 700; margin-top: 6px; }
+.queue-now-name  { font-size: 1.2rem; font-weight: 700; margin-top: 6px; text-transform: capitalize; }
 .queue-now-counter { font-size: 12px; color: #aaccff; margin-top: 4px; }
 .queue-now-empty { font-size: 1.2rem; color: rgba(255,255,255,0.35); padding: 10px 0; }
 
@@ -591,7 +614,7 @@ a { text-decoration: none; color: inherit; cursor: pointer; }
 }
 .queue-ticket-row:hover { background: #fffff8; }
 .queue-ticket-code { font-size: 13px; font-weight: 900; color: var(--color-hero-red); white-space: nowrap; min-width: 70px; }
-.queue-ticket-name { flex: 1; font-size: 12px; color: var(--color-portal-dark); font-weight: 600; }
+.queue-ticket-name { flex: 1; font-size: 12px; color: var(--color-portal-dark); font-weight: 600; text-transform: capitalize; }
 .queue-ticket-time { font-size: 10px; color: #888; white-space: nowrap; }
 
 /* ─── ADMIN BADGE (login bar) ───────────────────────────────────────────── */
@@ -777,6 +800,27 @@ a { text-decoration: none; color: inherit; cursor: pointer; }
     0 0 3px rgba(255, 0, 0, 0.9),
     0 0 9px rgba(255, 0, 0, 0.75),
     0 0 18px rgba(255, 40, 40, 0.65);
+}
+
+.recognition-wordmark-image {
+  display: inline-block;
+  width: auto;
+  height: 1.2em;
+  object-fit: contain;
+  vertical-align: middle;
+}
+
+.hero-brand.recognition-wordmark-image {
+  height: 60px;
+  width: auto;
+}
+
+.register-modal-title .recognition-wordmark-image {
+  height: 1.35em;
+}
+
+.queue-now-label .recognition-wordmark-image {
+  height: 1.1em;
 }
 
 .hero-brand.recognition-wordmark,

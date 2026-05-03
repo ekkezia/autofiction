@@ -12,6 +12,8 @@ pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.vers
 
 const SUPABASE     = import.meta.env.VITE_SUPABASE_STORAGE;
 const ASSET_SOURCE = (import.meta.env.VITE_ASSET_SOURCE || 'local').trim().toLowerCase();
+const LOGO_SRC = `${import.meta.env.BASE_URL}logo/logo.png`;
+const TEXT_LOGO_SRC = `${import.meta.env.BASE_URL}logo/text-logo-1.png`;
 const DEFAULT_QUEUE_SERVER = typeof window === 'undefined'
   ? 'http://localhost:4002'
   : `${window.location.protocol}//${window.location.hostname}:4002`;
@@ -516,7 +518,8 @@ function RegisterPage({ onClose, onRegistered }) {
       <div className="register-modal" onClick={e => e.stopPropagation()}>
         <div className="register-modal-bar">
           <span className="register-modal-title">
-            <span className="recognition-wordmark">The Recognition Office</span>
+            <img className="register-modal-logo-icon" src={LOGO_SRC} alt="Recognition Office icon" />
+            {/* <img className="recognition-wordmark-image" src={TEXT_LOGO_SRC} alt="The Recognition Office" /> */}
             {' · 赞美服务登记 / Session Registration'}
           </span>
           <button className="pdf-close-btn" onClick={onClose}>✕</button>
@@ -544,7 +547,11 @@ function RegisterPage({ onClose, onRegistered }) {
           </div>
         ) : (
           <form className="register-form" onSubmit={handleSubmit}>
-            <label className="register-label">请输入您的姓名（用于赞美服务） / Enter your name for your Recognition Session</label>
+            <label className="register-label">
+              {'请输入您的姓名（用于赞美服务） / Enter your name for your '}
+              <img className="register-label-wordmark" src={TEXT_LOGO_SRC} alt="The Recognition Office" />
+              {' Session'}
+            </label>
             <input
               className="register-input"
               type="text"
@@ -613,7 +620,7 @@ function QueueBoard({ queue, isAdmin, callNext, admitCurrent, connected, queueEr
         <div style={{ marginBottom: 12, background: '#ff00ff', padding: 12, width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.5em', fontSize: '0.9em', color: '#555' }}>
           <div className="queue-now-label">
             {'WELCOME TO '}
-            <span className="recognition-wordmark">The Recognition Office</span>
+            <img className="recognition-wordmark-image" src={TEXT_LOGO_SRC} alt="The Recognition Office" />
             !
           </div>
           <div className="queue-now-clock">{nowTime}</div>
@@ -622,7 +629,7 @@ function QueueBoard({ queue, isAdmin, callNext, admitCurrent, connected, queueEr
         {current ? (
           <>
             <div className="queue-now-code" style={{ fontSize: '6rem' }}>{current.code}</div>
-            <div className="queue-now-name" style={{ textTransform: 'uppercase' }}>{current.name}</div>
+            <div className="queue-now-name">{current.name}</div>
             <div className="queue-now-counter">Desk {current.counter}</div>
           </>
         ) : (
@@ -652,7 +659,7 @@ function QueueCol({ title, tickets, accent }) {
           : tickets.map(t => (
             <div key={t.code} className="queue-ticket-row">
               <div className="queue-ticket-code">{t.code}</div>
-              <div className="queue-ticket-name" style={{ textTransform: 'uppercase' }}>{t.name}</div>
+              <div className="queue-ticket-name">{t.name}</div>
               <div className="queue-ticket-time">{new Date(t.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
             </div>
           ))
@@ -706,7 +713,7 @@ function SiteHeader({ t }) {
       <div className="logo">
         <img
           className="logo-image"
-          src="/logo/logo.png"
+          src={LOGO_SRC}
           alt="THE RECOGNITION OFFICE logo"
         />
       </div>
@@ -782,10 +789,10 @@ function HeroBanner({ t }) {
         <div className="hero-title-row">
           <img
             className="hero-title-logo"
-            src="/logo/logo.png"
+            src={LOGO_SRC}
             alt="Recognition Office logo"
           />
-          <span className="hero-brand recognition-wordmark">The Recognition Office</span>
+          <img className="hero-brand recognition-wordmark-image" src={TEXT_LOGO_SRC} alt="The Recognition Office" />
         </div>
       </div>
     </div>
