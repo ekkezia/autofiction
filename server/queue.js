@@ -19,8 +19,6 @@ const CALL_VOICE_RATE = 240; // words/min for macOS `say` (slightly slower than 
 const CALL_WORD_RATE_JITTER = 12; // random +/- rate per word
 const CALL_WORD_PITCH_BASE = 50; // macOS speech base pitch command center
 const CALL_WORD_PITCH_JITTER = 7; // random +/- pitch per word
-const CALL_WORD_GAP_MIN_MS = 30;
-const CALL_WORD_GAP_MAX_MS = 95;
 const CALL_LOOP_GAP_MS = 1200;
 
 let seq = 1000;
@@ -52,12 +50,8 @@ function shellQuote(value) {
 	return `'${String(value).replace(/'/g, `'\\''`)}'`;
 }
 
-function buildCallWords(ticket) {
-	const phrase = `Calling ${ticket.name}. Ticket number ${ticket.code.replace(/-/g, ' ')}.`;
-	return phrase
-		.trim()
-		.split(/\s+/)
-		.filter(Boolean);
+function buildCallPhrase(ticket) {
+	return `Now serving, ${ticket.name}, Ticket ${ticket.code.replace(/-/g, ' ')}. Please go to the office and enjoy your service.`;
 }
 
 function stopAudio() {
@@ -74,31 +68,23 @@ function stopAudio() {
 
 function startCallingLoop(ticket) {
 	callingCode = ticket.code;
-	const words = buildCallWords(ticket);
-	console.log('Announcing (disjuncted mode):', words.join(' '));
+	const phrase = buildCallPhrase(ticket);
+	console.log('Announcing:', phrase);
 
-	function speakWord(index) {
+	function speakPhrase() {
 		if (callingCode !== ticket.code) return;
-
-		if (index >= words.length) {
-			audioTimer = setTimeout(() => speakWord(0), CALL_LOOP_GAP_MS);
-			return;
-		}
-
-		const word = words[index];
 		const pitch = CALL_WORD_PITCH_BASE + randomInt(-CALL_WORD_PITCH_JITTER, CALL_WORD_PITCH_JITTER);
 		const rate = CALL_VOICE_RATE + randomInt(-CALL_WORD_RATE_JITTER, CALL_WORD_RATE_JITTER);
-		const text = `[[pbas ${pitch}]] ${word}`;
+		const text = `[[pbas ${pitch}]] ${phrase}`;
 		const cmd = `say -v "Fred" -r ${rate} ${shellQuote(text)}`;
 
 		audioProcess = exec(cmd, () => {
 			if (callingCode !== ticket.code) return;
-			const gap = randomInt(CALL_WORD_GAP_MIN_MS, CALL_WORD_GAP_MAX_MS);
-			audioTimer = setTimeout(() => speakWord(index + 1), gap);
+			audioTimer = setTimeout(speakPhrase, CALL_LOOP_GAP_MS);
 		});
 	}
 
-	speakWord(0);
+	speakPhrase();
 }
 
 function notifyTD(address, value) {
@@ -116,7 +102,7 @@ function notifyTD(address, value) {
 
 function mkCode() {
 	seq += 1;
-	return `MF-${String(seq).padStart(4, '0')}`;
+	return `${String(seq).padStart(4, '0')}`;
 }
 
 function createTicket(name) {

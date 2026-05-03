@@ -12,7 +12,10 @@ pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.vers
 
 const SUPABASE     = import.meta.env.VITE_SUPABASE_STORAGE;
 const ASSET_SOURCE = (import.meta.env.VITE_ASSET_SOURCE || 'local').trim().toLowerCase();
-const QUEUE_SERVER = import.meta.env.VITE_QUEUE_SERVER || 'http://localhost:4002';
+const DEFAULT_QUEUE_SERVER = typeof window === 'undefined'
+  ? 'http://localhost:4002'
+  : `${window.location.protocol}//${window.location.hostname}:4002`;
+const QUEUE_SERVER = import.meta.env.VITE_QUEUE_SERVER || DEFAULT_QUEUE_SERVER;
 
 function localPathFromSource(src) {
   if (!src) return src;
@@ -336,7 +339,7 @@ const T = {
     tagline2: 'Consultants validate your feelings and achievements in real time.',
     greeting: 'Welcome Back',
     navItems: ['Home', 'Consultants On-Duty', 'Daily Praises', 'Meet the Team', 'Help Center', 'Learn More'],
-    heroPrefix: 'Need sincere compliments? Visit',
+    heroPrefix: 'Welcome to',
     femaleCol: 'Our Consultants & Experts',
     maleCol: "Today's Celebrated Clients",
     burgerStat: 'Recognition Meter 100%',
@@ -475,7 +478,7 @@ function useQueue() {
 }
 
 // ─── RegisterPage ──────────────────────────────────────────────────────────────
-const NEXT_TIMEOUT = 12; // seconds before auto-reset to new registration
+const NEXT_TIMEOUT = 10; // seconds before auto-reset to new registration
 
 function RegisterPage({ onClose, onRegistered }) {
   const [name, setName]       = useState('');
@@ -660,7 +663,7 @@ function QueueCol({ title, tickets, accent }) {
 }
 
 // ─── LoginBar ─────────────────────────────────────────────────────────────────
-function LoginBar({ t, onToggleLang, onRegister, onLogin, isAdmin }) {
+function LoginBar({ t, onToggleLang, onRegister, onLogin, isAdmin, onOpenQueueFocus }) {
   const [user, setUser] = useState('');
   const [pass, setPass] = useState('');
 
@@ -677,7 +680,12 @@ function LoginBar({ t, onToggleLang, onRegister, onLogin, isAdmin }) {
         <span>{t.password}</span>
         <input type="password" className="login-input" value={pass} onChange={e => setPass(e.target.value)} />
         <button className="login-btn" onClick={handleLogin}>{t.login}</button>
-        {isAdmin && <span className="admin-badge">ADMIN</span>}
+        {isAdmin && (
+          <>
+            <span className="admin-badge">ADMIN</span>
+            <button className="queue-waitlist-btn" onClick={onOpenQueueFocus}>QUEUE WAITLIST</button>
+          </>
+        )}
         <span className="login-link">{t.forgot}</span>
         <button className="register-btn" onClick={onRegister}>BOOK SESSION / 预约服务</button>
       </div>
@@ -1148,7 +1156,7 @@ function Popup({ t, onClose }) {
 
 // ─── App ──────────────────────────────────────────────────────────────────────
 const ADMIN_USER = 'admin';
-const ADMIN_PASS = 'admin';
+const ADMIN_PASS = '1111';
 
 export default function App() {
   const [lang, setLang]             = useState('zh');
@@ -1180,23 +1188,22 @@ export default function App() {
     if (user === ADMIN_USER && pass === ADMIN_PASS) setIsAdmin(true);
   }
 
-  const toggleQueueFocus = useCallback(async () => {
-    if (isQueueFocus) {
-      setIsQueueFocus(false);
-      if (prevNavRef.current !== NAV_QUEUE) navigateTo(prevNavRef.current);
-      if (document.fullscreenElement) {
-        try { await document.exitFullscreen(); } catch {}
-      }
-      return;
-    }
-
+  const openQueueFocus = useCallback(() => {
+    if (isQueueFocus) return;
     prevNavRef.current = activeNav;
     navigateTo(NAV_QUEUE);
     setIsQueueFocus(true);
-    if (!document.fullscreenElement) {
-      try { await document.documentElement.requestFullscreen(); } catch {}
-    }
   }, [activeNav, isQueueFocus]);
+
+  const toggleQueueFocus = useCallback(() => {
+    if (isQueueFocus) {
+      setIsQueueFocus(false);
+      if (prevNavRef.current !== NAV_QUEUE) navigateTo(prevNavRef.current);
+      return;
+    }
+
+    openQueueFocus();
+  }, [isQueueFocus, openQueueFocus]);
 
   useEffect(() => {
     function onPopState() {
@@ -1221,18 +1228,6 @@ export default function App() {
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [toggleQueueFocus]);
 
-  useEffect(() => {
-    function onFullscreenChange() {
-      if (document.fullscreenElement) return;
-      if (!isQueueFocus) return;
-      setIsQueueFocus(false);
-      if (prevNavRef.current !== NAV_QUEUE) navigateTo(prevNavRef.current);
-    }
-
-    document.addEventListener('fullscreenchange', onFullscreenChange);
-    return () => document.removeEventListener('fullscreenchange', onFullscreenChange);
-  }, [isQueueFocus]);
-
   function centerContent() {
     if (isRegistration) return <QueueBoard queue={queue} isAdmin={isAdmin} callNext={callNext} admitCurrent={admitCurrent} connected={connected} queueError={queueError} />;
     if (isConsultants)  return <ConsultantsContent />;
@@ -1253,7 +1248,7 @@ export default function App() {
 
   return (
     <div className="site">
-      <LoginBar t={t} onToggleLang={toggleLang} onRegister={() => setShowReg(true)} onLogin={handleLogin} isAdmin={isAdmin} />
+      <LoginBar t={t} onToggleLang={toggleLang} onRegister={() => setShowReg(true)} onLogin={handleLogin} isAdmin={isAdmin} onOpenQueueFocus={openQueueFocus} />
       <SiteHeader t={t} />
       <SiteNav t={t} activeNav={activeNav} onNavClick={navigateTo} />
       <HeroBanner t={t} />

@@ -7,14 +7,14 @@ npm install
 npm run dev
 ```
 
-## Calling System Fullscreen
+## Calling System Queue Focus
 
-To switch the calling system into queue-only fullscreen mode:
+To switch the calling system into queue-only focus mode:
 
 1. Open THE RECOGNITION OFFICE in the browser.
 2. Click once on the page so it has keyboard focus.
-3. Press `R` to enter fullscreen queue mode.
-4. Press `R` again (or `Esc`) to exit and return to normal view.
+3. Press `R` to show only the queue section.
+4. Press `R` again to exit and return to normal view.
 
 ## Queue Server Port
 

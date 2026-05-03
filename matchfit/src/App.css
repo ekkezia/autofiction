@@ -602,6 +602,21 @@ a { text-decoration: none; color: inherit; cursor: pointer; }
   border: 1px solid #770000;
 }
 
+.queue-waitlist-btn {
+  background: linear-gradient(180deg, #4d99ee, var(--color-portal-dark));
+  color: #fff;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  padding: 2px 8px;
+  border: 1px solid #0944aa;
+  cursor: pointer;
+}
+
+.queue-waitlist-btn:hover {
+  background: linear-gradient(180deg, #66aaff, #2255bb);
+}
+
 /* ─── ADMIN ACTION BAR (queue board) ────────────────────────────────────── */
 .queue-admin-bar {
   background: linear-gradient(90deg, #1a0a00, #2a1400);

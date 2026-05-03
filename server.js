@@ -56,7 +56,19 @@ function proxyToLight(req, res) {
   req.pipe(upstream);
 }
 
-function renderIndex() {
+function hostnameFromHostHeader(hostHeader) {
+  const host = String(hostHeader || '').trim();
+  if (!host) return 'localhost';
+  if (host.startsWith('[')) {
+    const closeBracket = host.indexOf(']');
+    if (closeBracket > 1) return host.slice(1, closeBracket);
+    return 'localhost';
+  }
+  const colonIdx = host.indexOf(':');
+  return colonIdx === -1 ? host : host.slice(0, colonIdx);
+}
+
+function renderIndex(hostname) {
   return `<!doctype html>
 <html lang="en">
   <head>
@@ -85,9 +97,9 @@ function renderIndex() {
       <p>Open apps:</p>
       <ul>
         <li><a href="/light">Light UI (/light)</a></li>
-        <li><a href="http://localhost:${MATCHFIT_PORT}" target="_blank" rel="noreferrer">Matchfit UI (localhost:${MATCHFIT_PORT})</a></li>
+        <li><a href="http://${hostname}:${MATCHFIT_PORT}" target="_blank" rel="noreferrer">Matchfit UI (${hostname}:${MATCHFIT_PORT})</a></li>
       </ul>
-      <p>Queue Socket.IO endpoint: <code>http://localhost:4002</code></p>
+      <p>Queue Socket.IO endpoint: <code>http://${hostname}:4002</code></p>
       <p>Health: <a href="/health">/health</a></p>
     </div>
   </body>
@@ -132,8 +144,9 @@ const server = http.createServer((req, res) => {
   }
 
   if (req.url === '/') {
+    const hostname = hostnameFromHostHeader(req.headers.host);
     res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-    res.end(renderIndex());
+    res.end(renderIndex(hostname));
     return;
   }
 
