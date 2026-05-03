@@ -422,21 +422,25 @@ const CONSULTANT_PROFILES = [
 const TEAM_MEMBERS = [
   {
     name: 'Kezia Widjaja',
+    photo: '/profiles/kezia.jpeg',
     role: 'Operation Manager',
     blurb: 'Leads daily service quality, scheduling, and client journey design. Kezia has a reputation for turning complex operations into warm, consistent client experiences.',
   },
   {
     name: 'Kurt Qian',
+    photo: '/profiles/kurt.jpeg',
     role: 'Technical Intern',
     blurb: 'Supports queue tooling, diagnostics, and rapid UI fixes. Kurt focuses on reliability and smooth handoffs so consultants can stay present with clients.',
   },
   {
     name: 'Leo Zheng',
+    photo: '/profiles/leo.jpeg',
     role: 'Designer',
     blurb: 'Shapes the visual language for praise sessions, dashboards, and client touchpoints. Leo designs for emotional clarity, confidence, and ease of use.',
   },
   {
     name: 'Shihan Tan',
+    photo: '/profiles/shihan.jpeg',
     role: 'Human Resource Manager',
     blurb: 'Oversees consultant training, onboarding, and team wellbeing. Shihan builds a culture where empathy, feedback, and professionalism scale together.',
   },
@@ -979,9 +983,10 @@ function TeamContent() {
         {TEAM_MEMBERS.map((member) => (
           <div key={member.name} className="story-item">
             <img
-              src={`https://i.pravatar.cc/112?u=${encodeURIComponent(member.name)}`}
+              src={member.photo}
               className="story-photo"
               alt={member.name}
+              onError={(e) => { e.currentTarget.src = `https://i.pravatar.cc/112?u=${encodeURIComponent(member.name)}`; }}
             />
             <p className="story-text">
               <strong>{member.name}</strong> · {member.role}
