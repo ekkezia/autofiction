@@ -14,6 +14,7 @@ const SUPABASE     = import.meta.env.VITE_SUPABASE_STORAGE;
 const ASSET_SOURCE = (import.meta.env.VITE_ASSET_SOURCE || 'local').trim().toLowerCase();
 const LOGO_SRC = `${import.meta.env.BASE_URL}logo/logo.png`;
 const TEXT_LOGO_SRC = `${import.meta.env.BASE_URL}logo/text-logo-1.png`;
+const TEAM_PROFILE_BASE = `${import.meta.env.BASE_URL}profiles/`;
 const DEFAULT_QUEUE_SERVER = typeof window === 'undefined'
   ? 'http://localhost:4002'
   : `${window.location.protocol}//${window.location.hostname}:4002`;
@@ -422,25 +423,25 @@ const CONSULTANT_PROFILES = [
 const TEAM_MEMBERS = [
   {
     name: 'Kezia Widjaja',
-    photo: '/profiles/kezia.jpeg',
+    photo: `${TEAM_PROFILE_BASE}kezia.jpeg`,
     role: 'Operation Manager',
     blurb: 'Leads daily service quality, scheduling, and client journey design. Kezia has a reputation for turning complex operations into warm, consistent client experiences.',
   },
   {
     name: 'Kurt Qian',
-    photo: '/profiles/kurt.jpeg',
+    photo: `${TEAM_PROFILE_BASE}kurt.jpeg`,
     role: 'Technical Intern',
     blurb: 'Supports queue tooling, diagnostics, and rapid UI fixes. Kurt focuses on reliability and smooth handoffs so consultants can stay present with clients.',
   },
   {
     name: 'Leo Zheng',
-    photo: '/profiles/leo.jpeg',
+    photo: `${TEAM_PROFILE_BASE}leo.jpeg`,
     role: 'Designer',
     blurb: 'Shapes the visual language for praise sessions, dashboards, and client touchpoints. Leo designs for emotional clarity, confidence, and ease of use.',
   },
   {
     name: 'Shihan Tan',
-    photo: '/profiles/shihan.jpeg',
+    photo: `${TEAM_PROFILE_BASE}shihan.jpeg`,
     role: 'Human Resource Manager',
     blurb: 'Oversees consultant training, onboarding, and team wellbeing. Shihan builds a culture where empathy, feedback, and professionalism scale together.',
   },
@@ -986,7 +987,7 @@ function TeamContent() {
               src={member.photo}
               className="story-photo"
               alt={member.name}
-              onError={(e) => { e.currentTarget.src = `https://i.pravatar.cc/112?u=${encodeURIComponent(member.name)}`; }}
+              onError={(e) => { e.currentTarget.src = `${TEAM_PROFILE_BASE}kezia.jpeg`; }}
             />
             <p className="story-text">
               <strong>{member.name}</strong> · {member.role}

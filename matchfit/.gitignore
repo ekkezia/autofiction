@@ -1,5 +1,4 @@
 node_modules
-public
 .env.local
 /dist
 .DS_Store
