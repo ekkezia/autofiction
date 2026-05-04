@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback, Suspense } from 'react';
 import { io } from 'socket.io-client';
 import archiveData from '../archive-assets.json';
+import { CLIENT_FEEDBACK_SESSION } from './clientFeedbackConfig';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Environment, Center } from '@react-three/drei';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
@@ -18,6 +19,7 @@ const DEFAULT_QUEUE_SERVER = typeof window === 'undefined'
   ? 'http://localhost:4002'
   : `${window.location.protocol}//${window.location.hostname}:4002`;
 const QUEUE_SERVER = import.meta.env.VITE_QUEUE_SERVER || DEFAULT_QUEUE_SERVER;
+const CLOSURE_NOTICE_PHRASE = 'The office is temporarily closed due to legal issues, we thank our most honored customers and everyone. We will improve our service and welcome you back into our recognition service in the good future.';
 
 function localPathFromSource(src) {
   if (!src) return src;
@@ -286,7 +288,7 @@ const T = {
     tagline1: '在这里，你的努力会被认真看见',
     tagline2: 'Here, your efforts are seen, praised, and validated.',
     greeting: '欢迎光临',
-    navItems: ['认可首页', '顾问团队', '今日赞词', '鼓励电台', '服务方案', '团队介绍', '在线客服', '帮助中心', '我的档案', '关于我们'],
+    navItems: ['认可首页', '顾问团队', '今日赞词', '团队介绍', '帮助中心', '了解更多', '闭馆通知'],
     heroPrefix: '欢迎来到',
     femaleCol: '本周值班赞美顾问',
     maleCol: '今日高光客户',
@@ -326,6 +328,17 @@ const T = {
       '我原本只是抱着试试看的心态来做“被夸咨询”。没想到顾问没有敷衍，而是把我说不出口的辛苦一点点整理成清晰的价值。那次结束后我第一次觉得，原来我不是“还不够好”，而是一直没人认真肯定我。',
       '连续做了三周服务后，我的状态变化非常明显。每次顾问都会先听我说，再用具体例子指出我做得好的地方。它不是空话，而是有证据的认可。现在我在工作汇报和人际沟通里都更有底气了。',
     ],
+    storiesSessionDate: '服务日期',
+    storiesConsultant: '高级顾问',
+    storiesTicketLabel: '票号',
+    storiesPrev: '上一页',
+    storiesNext: '下一页',
+    closureNoticeTitle: '临时闭馆通知',
+    closureNoticeBody: [
+      'The office is temporarily closed due to legal issues.',
+      'We thank our most honored customers and everyone.',
+      'We will improve our service and welcome you back into our recognition service in the good future.',
+    ],
     viewPdf: '查看 PDF',
     toggleBtn: 'EN',
   },
@@ -340,7 +353,7 @@ const T = {
     tagline1: 'Your effort is seen and celebrated here',
     tagline2: 'Consultants validate your feelings and achievements in real time.',
     greeting: 'Welcome Back',
-    navItems: ['Home', 'Consultants On-Duty', 'Daily Praises', 'Meet the Team', 'Help Center', 'Learn More'],
+    navItems: ['Home', 'Consultants On-Duty', 'Daily Praises', 'Meet the Team', 'Help Center', 'Learn More', 'Closure Notice'],
     heroPrefix: 'Welcome to',
     femaleCol: 'Our Consultants & Experts',
     maleCol: "Today's Celebrated Clients",
@@ -365,9 +378,17 @@ const T = {
     svc2Title: 'Members-Only Recognition Services',
     svc2: ['Achievement recap and highlight extraction', 'Custom "praise script" audio', 'Confidence maintenance plans'],
     storiesTitle: 'How Clients Felt Seen Again',
-    stories: [
-      'I signed up for a compliment session expecting generic pep talk. Instead, the consultant listened carefully and reflected my progress with concrete language. I left feeling emotionally steadier and genuinely proud of what I had done that week.',
-      'After a month of weekly sessions, I stopped minimizing my achievements. The consultant helped me name my strengths, practice accepting praise, and speak about my work with confidence. It felt like being validated in a way I had needed for years.',
+    stories: [],
+    storiesSessionDate: 'Session Date',
+    storiesConsultant: 'Senior Consultant',
+    storiesTicketLabel: 'Ticket',
+    storiesPrev: 'Previous',
+    storiesNext: 'Next',
+    closureNoticeTitle: 'Closure Notice',
+    closureNoticeBody: [
+      'The office is temporarily closed due to legal issues.',
+      'We thank our most honored customers and everyone.',
+      'We will improve our service and welcome you back into our recognition service in the good future.',
     ],
     popupBrand: 'Recognition Lounge Services',
     popupSub: 'Compliment packages · delivered live',
@@ -771,6 +792,7 @@ const NAV_QUEUE = 'queue';
 const NAV_CONSULTANTS_PATH = '/consultants';
 const NAV_TEAM_PATH = '/team';
 const NAV_ABOUT_PATH = '/about';
+const NAV_CLOSURE_PATH = '/closure-notice';
 const NAV_PATHS = [
   '/',
   '/consultants',
@@ -778,6 +800,7 @@ const NAV_PATHS = [
   '/team',
   '/support',
   '/about',
+  '/closure-notice',
 ];
 
 function normalizePath(pathname) {
@@ -960,19 +983,46 @@ function PdfModal({ src, title, onClose }) {
 
 // ─── StoriesContent ───────────────────────────────────────────────────────────
 const STORY_SEEDS = ['couple101', 'couple202', 'couple303', 'couple404'];
+const STORIES_PER_PAGE = 6;
 
 function StoriesContent({ t }) {
-  const pairs = [t.stories[0], t.stories[1], t.stories[0], t.stories[1]];
+  const [page, setPage] = useState(0);
+  const session = CLIENT_FEEDBACK_SESSION;
+  const totalPages = Math.max(1, Math.ceil(session.clients.length / STORIES_PER_PAGE));
+  const safePage = Math.min(page, totalPages - 1);
+  const start = safePage * STORIES_PER_PAGE;
+  const visibleClients = session.clients.slice(start, start + STORIES_PER_PAGE);
+
+  useEffect(() => {
+    setPage(0);
+  }, [t.storiesTitle]);
+
+  const prevPage = () => setPage((p) => (p - 1 + totalPages) % totalPages);
+  const nextPage = () => setPage((p) => (p + 1) % totalPages);
+
   return (
     <div className="center-content">
       <div className="stories-box">
         <div className="stories-title">{t.storiesTitle}</div>
-        {pairs.map((text, i) => (
-          <div key={i} className="story-item">
-            <img src={`https://picsum.photos/seed/${STORY_SEEDS[i]}/112/88`} className="story-photo" alt="" />
-            <p className="story-text">{text}</p>
+        <div className="stories-session-meta">
+          <span>{t.storiesSessionDate}: {session.sessionDateLabel}</span>
+          <span>{t.storiesConsultant}: {session.consultant}</span>
+        </div>
+        {visibleClients.map((client, i) => (
+          <div key={`${client.ticket}-${start + i}`} className="story-item">
+            <img src={`https://picsum.photos/seed/${STORY_SEEDS[(start + i) % STORY_SEEDS.length]}/112/88`} className="story-photo" alt="" />
+            <p className="story-text">
+              <strong>{client.name}</strong> ({t.storiesTicketLabel} {client.ticket}, {client.time}) shared that the session helped them feel seen, encouraged, and more confident.
+            </p>
           </div>
         ))}
+        {totalPages > 1 && (
+          <div className="stories-pagination">
+            <button className="stories-page-btn" onClick={prevPage}>{t.storiesPrev || 'Previous'}</button>
+            <span className="stories-page-indicator">{safePage + 1} / {totalPages}</span>
+            <button className="stories-page-btn" onClick={nextPage}>{t.storiesNext || 'Next'}</button>
+          </div>
+        )}
       </div>
       <div className="services-row">
         <div className="service-box">
@@ -1030,6 +1080,21 @@ function TeamContent() {
               <br />
               {member.blurb}
             </p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ClosureNoticeContent({ t }) {
+  return (
+    <div className="center-content">
+      <div className="stories-box">
+        <div className="stories-title">{t.closureNoticeTitle}</div>
+        {t.closureNoticeBody.map((line, i) => (
+          <div key={i} className="story-item">
+            <p className="story-text">{line}</p>
           </div>
         ))}
       </div>
@@ -1223,11 +1288,25 @@ export default function App() {
   const isConsultants  = activePath === NAV_CONSULTANTS_PATH;
   const isTeam         = activePath === NAV_TEAM_PATH;
   const isAbout        = activePath === NAV_ABOUT_PATH;
+  const isClosure      = activePath === NAV_CLOSURE_PATH;
   const isRegistration = activeNav === NAV_QUEUE;
+
+  function speakClosureNoticeLocal() {
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
+    const utterance = new window.SpeechSynthesisUtterance(CLOSURE_NOTICE_PHRASE);
+    utterance.lang = 'en-US';
+    utterance.rate = 1.05;
+    utterance.pitch = 1;
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(utterance);
+  }
 
   function navigateTo(nav) {
     setActiveNav(nav);
     const nextPath = pathFromNav(nav);
+    if (nextPath === NAV_CLOSURE_PATH) {
+      speakClosureNoticeLocal();
+    }
     if (normalizePath(window.location.pathname) !== nextPath) {
       window.history.pushState({}, '', nextPath);
     }
@@ -1281,6 +1360,7 @@ export default function App() {
     if (isRegistration) return <QueueBoard queue={queue} isAdmin={isAdmin} callNext={callNext} enterSession={enterSession} completeSession={completeSession} connected={connected} queueError={queueError} />;
     if (isConsultants)  return <ConsultantsContent />;
     if (isTeam)         return <TeamContent />;
+    if (isClosure)      return <ClosureNoticeContent t={t} />;
     if (isAbout)        return <ArchiveContent t={t} />;
     return <StoriesContent t={t} />;
   }
